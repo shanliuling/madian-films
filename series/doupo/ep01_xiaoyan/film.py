@@ -6,11 +6,11 @@ import _env, os, sys, math, subprocess, functools, numpy as np, cv2, cairo
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from stage import Out
 from paper import layer, rgba, FONT
-import action as A, fighter as F, yunlan, sets, fight
+import action as A, fighter as F, yunlan, sets, fight, fx
 from action import track, rnd, pulse
 R = fight.R; FPS = fight.FPS; BEAT = 0.59413; GY = yunlan.GY; P = F.P
 def bt(b): return 0.50 + b * BEAT
-DUR = 175.4; CYAN = (0.25, 1.0, 0.80); PURP = (0.72, 0.35, 1.0); WHITEF = (0.82, 0.92, 1.0); WIND = (0.62, 0.98, 1.0); GOLD = (1.0, 0.80, 0.36)
+DUR = 0.50 + 228 * 0.59413; CYAN = (0.25, 1.0, 0.80); PURP = (0.72, 0.35, 1.0); WHITEF = (0.82, 0.92, 1.0); WIND = (0.62, 0.98, 1.0); GOLD = (1.0, 0.80, 0.36)
 @functools.lru_cache(maxsize=None)
 def PL(name):
     if name == 'yunlan': return yunlan.plates(R)
@@ -26,7 +26,11 @@ class Act:
             if len(s.c) > 6000: s.c.clear()
             p = dict(s.f(t)); p = s.mod(p, t) if s.mod else p; s.c[t] = F.kin(p, s.H, GY)
         return s.c[t]
+    wingf = None
     def draw(s, c, t, alpha=1.0, **kw):
+        if s.wingf and alpha >= 1.0:
+            o = s.wingf(t)
+            if o > 0.02: wings(c, s.J(t), t, op=o)
         k = dict(s.kw); k.update(kw)
         if s.who == 'xiaoyan':
             if alpha < 1: c.push_group()
@@ -43,11 +47,8 @@ def wtrail(c, a, t, L, col, th=1400, core=(0.92, 0.96, 1)):
     tr = [F.wpts(a.J(t - k / 300), L, 0.12) for k in range(32)]; sp = math.hypot(tr[0][1][0] - tr[4][1][0], tr[0][1][1] - tr[4][1][1]) * 75
     if sp > th: A.trail(c, tr, col, a=min(1.0, (sp - th) / 3000), core=core)
 def lotus(c, pos, r, t, ca=CYAN, cb=PURP, a=1.0):
-    """火莲：两色花瓣交错着转，中间一团白。"""
-    A.burst(c, pos, r * 2.2, ca, a * 0.5)
-    for i in range(10):
-        th = i / 10 * 6.283 + t * 5; col = ca if i % 2 else cb; c.save(); c.translate(pos[0] + math.cos(th) * r * 0.5, pos[1] + math.sin(th) * r * 0.5 * 0.55); c.rotate(th); c.scale(r * 0.62, r * 0.26); c.arc(0, 0, 1, 0, 7); c.restore(); c.set_source_rgba(*col, a * 0.85); c.fill()
-    A.burst(c, pos, r * 0.7, (1, 1, 1), a)
+    """侧面看的火莲（glow 层）。"""
+    fx.lotus(c, pos, r * 1.3, t, ca, cb, tilt=0.62, a=a * 0.62, spin=3.0)
 def wtext(c, s, x, y, px, col, a=1.0, font='Noto Serif CJK SC'):
     """场景里的字（跟着镜头走），居中。"""
     c.select_font_face(font, cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD); c.set_font_size(px); e = c.text_extents(s); c.move_to(x - e.x_advance / 2, y + px * 0.36); c.set_source_rgba(*col, a); c.show_text(s)
@@ -62,12 +63,16 @@ def caption(fr, s, y=968, px=50, col=(244, 244, 248), a=1.0, x=960, font=None):
     rgb, al = _capc[key]; h, w = al.shape[:2]; x0 = int(x * R.k - w / 2); y0 = int(y * R.k - h / 2); xa, xb = max(0, x0), min(R.w, x0 + w); ya, yb = max(0, y0), min(R.h, y0 + h)
     if xa >= xb or ya >= yb or a <= 0: return fr
     fr = fr.copy(); sl = (slice(ya - y0, yb - y0), slice(xa - x0, xb - x0)); fr[ya:yb, xa:xb] = fr[ya:yb, xa:xb] * (1 - al[sl] * a) + rgb[sl] * a; return fr
-def cap(fr, t, b0, b1, s, **kw):
+NOCAP = False
+KEEP = ('萧家大厅', '云岚宗 · 三年之约', '乌坦城 · 萧家', '云岚宗', '加玛帝国 · 边境', '上 · 莫欺少年穷', '三年前', '他是萧家百年之内，最年轻的斗者', '一夜之间，斗之气旋化为乌有', '云岚宗送来一枚聚气散，当作退婚的赔礼', '吞噬异火，就算备齐了丹药，成功率也只有一成', '纳兰嫣然，败？',
+        '三年前那张休证。纸折旧了，血手印还在', '三天前，三个黑袍人夜袭萧家', '父亲萧战追了出去，再没有回来', '黑袍人留下的能量痕迹，属于云岚宗的首席长老', '云岚宗上代宗主出关——斗宗', '赢了三年之约的人，成了加玛帝国容不下的人', '路上，药老第一次提起了一个名字')
+def cap(fr, t, b0, b1, s, force=False, **kw):
+    if not force and (NOCAP or not (s.startswith('「') or s in KEEP or '：「' in s)): return fr
     if bt(b0) <= t < bt(b1): fr = caption(fr, s, a=min(1.0, (t - bt(b0)) / 0.12, (bt(b1) - t) / 0.12), **kw)
     return fr
 _slc = {}
 def slam(fr, t, b0, b1, s, pos, px=220, vertical=False, glow=(60, 255, 210), col=(255, 255, 255), big=2.6, rot=0.0):
-    if not bt(b0) <= t < bt(b1): return fr
+    if NOCAP or not bt(b0) <= t < bt(b1): return fr
     key = (s, px, vertical, glow, col)
     if key not in _slc: _slc[key] = A.Slam(s, _env.BRUSH, px, R, col=col, glow=glow, vertical=vertical)
     return _slc[key].draw(fr, t, bt(b0), bt(b1), pos, R, big=big, rot=rot)
@@ -418,11 +423,9 @@ def s_home(t):
     return cap(fr, t, 187, 193, '「此次，他必须死。谁阻，谁死。」')
 
 # ================= 193–248 再上云岚宗：云韵、云棱、云山、药老借体
-def wings(c, J, t, a=0.8):
-    """紫云翼：背后一对紫青色的翼。"""
-    o = J['chest']; f = J['f']
-    for k, (ang, L) in enumerate(((150, 300), (128, 340), (106, 300), (84, 230))):
-        th = math.radians(ang + 10 * math.sin(t * 9 + k)); e = (o[0] - f * math.cos(th) * -L * -1, o[1] - math.sin(th) * L); e = (o[0] + f * math.cos(th) * L, o[1] - math.sin(th) * L); A.crescent(c, ((o[0] + e[0]) / 2, (o[1] + e[1]) / 2), math.degrees(math.atan2(-(e[1] - o[1]), e[0] - o[0])), L, PURP if k % 2 else (0.5, 0.6, 1.0), a=a, thick=0.22)
+def wings(c, J, t, op=1.0, S=430, glow=False, qi=False, cb=PURP):
+    """侧面的一对翼（紫云翼；qi=True 是斗气化翼）：远的一只小一点、在后面。"""
+    o = J['chest']; f = J['f']; fx.wing(c, (o[0] - f * 16, o[1] - 12), -f, S * 0.76, op, t, glow=glow, qi=qi, cb=cb, flap=26, seed=2); fx.wing(c, (o[0] - f * 6, o[1]), -f, S, op, t, glow=glow, qi=qi, cb=cb, flap=4)
 _x2 = Act('xiaoyan', [(bt(193), P(x=-300, air=700, rot=64, lean=20, head=-30, a1=(-40, -20), a2=(-30, -10), l1=(-10, -20), l2=(-30, -40))), (bt(197.6), P(x=960, air=440, rot=58, lean=20, head=-30, a1=(-40, -20), a2=(-30, -10), l1=(-10, -20), l2=(-30, -40)), 'lin'),
     (bt(198), P(x=1100, lean=44, head=-20, a1=(40, 60), a2=(-30, -40), l1=(74, -40), l2=(-40, -84)), 'i'), (bt(199.4), P(x=1100, lean=6, head=-8, a1=(10, 30), a2=(-10, 0), l1=(20, 0), l2=(-20, -20)), 'io'), (bt(199.5), P(x=1100, face=-1, lean=4, head=-14, a1=(10, 30), a2=(-10, 0), l1=(20, 0), l2=(-20, -20)), 'hold'),
     (bt(207.6), P(x=1100, face=-1, lean=4, head=-4, a1=(10, 30), a2=(-10, 0), l1=(20, 0), l2=(-20, -20))), (bt(208.4), P(x=1100, face=-1, lean=14, head=-6, a1=(64, 110), a2=(20, 100), l1=(44, -10), l2=(-40, -44), glint=1.0, mouth=1), 'o'), (bt(210.8), P(x=1100, face=-1, lean=4, head=-8, a1=(60, 120), a2=(40, 110), l1=(44, -10), l2=(-40, -44), glint=1.0, mouth=1)),
@@ -468,8 +471,9 @@ def s_y2(t):
                 c.set_line_width(8 - 1.2 * (i % 4)); c.stroke()
             for i in range(5): A.debris(c, t, bt(216 + 2 * i), (1060 + (rnd(i, 8) - 0.5) * 300, GY), 10, 200, 800, (0.55, 0.5, 0.6), seed=40 + i, floor=GY + 10, g=1200)
     def back(c):
-        if b < 198.3: wings(c, XJ, t)
-        if 244.6 <= b: wings(c, XJ, t)
+        if b < 198.3 or 244.6 <= b: wings(c, XJ, t, glow=True)
+        if 198.6 <= b < 207.6: wings(c, _yy.J(t), t, S=380, qi=True, cb=CYAN)
+        if b >= 214.5: wings(c, SJ, t, S=440, qi=True, cb=(0.86, 0.95, 1.0))
         aura(c, _x2, t, WHITEF if poss else CYAN, n=50, k=(0.85 if poss else 0.5 * (1 if b < 214 else max(0.0, 1 - (b - 214) / 6))), rise=600 if poss else 480)
         if b >= 214: aura(c, _ys, t, (0.75, 0.95, 1.0), n=40, k=0.6, seed=31, rise=560)
         if 206 <= b < 212: aura(c, _yl, t, WIND, n=24, k=0.5, seed=41)
@@ -570,7 +574,7 @@ def s_end(t):
     b = (t - 0.5) / BEAT
     if b >= 288:                                                                          # 下集
         fr = np.zeros((R.h, R.w, 3), np.float32); s, c = layer(R.w, R.h); c.scale(R.k, R.k); A.flame(c, t, lambda dt, sv: (260 + 1400 * sv, 960 + 40 * math.sin(sv * 9)), 130, 0.9, 460, 70, (1.0, 0.5, 0.15), a=0.5, seed=5, wob=30); fr = A.add_glow(fr, s, 20 * R.k, 1.0)
-        fr = slam(fr, t, 288, 296, '炎帝', (960, 500), px=380, glow=(255, 130, 30), big=2.0); fr = caption(fr, '下集', y=250, px=64, col=(255, 226, 170)); fr = caption(fr, '斗之力三段的废物，凭什么成了炎帝？', y=760, px=50); return fr * min(1.0, max(0.0, (DUR - 0.2 - t) / 1.2))
+        fr = slam(fr, t, 288, 296, '炎帝', (960, 500), px=380, glow=(255, 130, 30), big=2.0); fr = caption(fr, '下集', y=250, px=64, col=(255, 226, 170)); fr = caption(fr, '斗之力三段的废物，凭什么成了炎帝？', y=760, px=50); return fr * min(1.0, max(0.0, (175.2 - t) / 1.2))
     ya = min(1.0, max(0.0, (b - 272) / 1.5)); dark = min(1.0, max(0.0, (b - 282) * 8))
     def glow(c):
         if dark > 0:
@@ -583,12 +587,115 @@ def s_end(t):
     fr = cap(fr, t, 262.4, 268.4, '加玛帝国 · 边境', y=80, px=58, col=(255, 226, 170)); fr = cap(fr, t, 263, 268.6, '他穿出魔兽山脉，走到了帝国的边境'); fr = cap(fr, t, 269.4, 277.6, '父亲失踪，家族被迫迁走——这笔账，他说下次回来自己算')
     fr = cap(fr, t, 278, 281.9, '路上，药老第一次提起了一个名字'); fr = slam(fr, t, 282, 288, '魂殿', (960, 440), px=400, glow=(150, 60, 255), big=2.6); return fr * (min(1.0, (288 - b) * 3) if b > 287.6 else 1.0)
 
-SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall), (64, 80, s_ring), (80, 96, s_train), (96, 116, s_swallow), (116, 129, s_fight), (129, 136, s_baji), (136, 148, s_lotus), (148, 166, s_after), (166, 193, s_home), (193, 248, s_y2), (248, 262, s_map), (262, 296, s_end)]
+# ======================================================================================
+# v2 装配：每个镜头还是用自己原来的拍号当时钟；SEG 把成片的拍（fb）接到镜头的拍上。成片 228 拍 ≈ 2 分 16 秒。
+_air = lambda a: (lambda t: min(1.0, max(0.0, (a.f(t)['air'] - 120) / 140)))
+_xl.wingf = _air(_xl); _xa.wingf = _air(_xa); _x2.wingf = lambda t: 1.0 if (t < bt(198.3) or t >= bt(244.6)) else 0.0
+def scr(M, x, y): return ((M[0, 0] * x + M[0, 1] * y + M[0, 2]) / R.k, (M[1, 0] * x + M[1, 1] * y + M[1, 2]) / R.k)
+def nocap(fn, t):
+    global NOCAP; NOCAP = True
+    try: return fn(t)
+    finally: NOCAP = False
+
+def s_ots(tl, ev, look='nalan', pl='yunlan', ca=CYAN, cb=PURP, twin=True):
+    """过肩：敌人的后脑勺压在前景，萧炎从盲区升上来 → 展翼 → 莲花一拍开一层 → 推向镜头。tl=本地秒；ev=(展翼, 一层, 二层, 三层, 出手) 的本地拍。"""
+    lb = tl / BEAT; e_w, e1, e2, e3, e_t = ev; g = lambda e, d=0.20: min(1.0, max(0.0, (lb - e) * BEAT / d)); rise = 1 - (1 - min(1.0, max(0.0, (lb - (e_w - 1.0)) / 1.0))) ** 3
+    cx = 1090; fy = 1560 - 700 * rise + 10 * math.sin(tl * 2.2); wop = 0.10 + 0.90 * g(e_w, 0.14); op = (g(e1), g(e2), g(e3)); th = max(0.0, (lb - e_t) * BEAT); thrown = th > 0; lr = (40 + 40 * op[0] + 34 * op[1] + 30 * op[2]) * (1 if not thrown else math.exp(th * 9.5))
+    sh = A.shake(tl, [(e_w * BEAT, 26, 0.25)] + [(e * BEAT, 12, 0.14) for e in (e1, e2, e3)] + [(e_t * BEAT, 30, 0.3)], FPS); z = 1.0 + 0.06 * g(e_w) + 0.035 * (op[0] + op[1] + op[2]) + 0.02 * math.sin(tl); cam = (960 + sh[0], 500 + sh[1] - 30 * (1 - rise), z, -2.5 + 1.5 * math.sin(tl * 0.8)); an = {}; K = F.LOOKS[look]
+    lp = lambda: ((an['hands'][0][0] + an['hands'][1][0]) / 2 + (960 - cx) * min(1.0, th * 5), an['hands'][0][1] - 34 + (560 - fy + 0.6 * 560) * 0 - 10 * min(1.0, th * 5))
+    def chars(c):
+        for sd in (-1, 1): fx.wing(c, (cx + sd * 26, fy - 0.70 * 560), sd, 600, wop, tl, flap=(18 * (1 - g(e_w, 0.5)) if lb >= e_w else 0), seed=sd)
+        an.update(fx.front(c, cx, fy, 560, tl, arms='push' if thrown else 'cup', eyes=(ca, cb if cb != PURP else ca), hand=1.5 if thrown else 1.0))
+        if op[0] > 0 and lr < 900: fx.lotus(c, lp(), lr, tl, ca, cb, op, solid=True)
+        if not thrown or th < 0.25: fx.back(c, 450 - 30 * g(e_w, 0.3), 1150 + 12 * math.sin(tl * 1.3), 780, K, tl, twin=twin, turn=-g(e_w, 0.3))
+    def back(c):
+        for sd in (-1, 1): fx.wing(c, (cx + sd * 26, fy - 0.70 * 560), sd, 600, wop, tl, glow=True, cb=PURP, seed=sd)
+        A.flame(c, tl, lambda dt, sv: (cx + (sv - 0.5) * 300, fy - 60 - 380 * rnd(int(sv * 997), 3)), 46, 0.5, 520, 60, ca, a=0.55, seed=11, wob=26)
+    def glow(c):
+        fx.feathers(c, (cx, fy - 400), tl, e_w * BEAT, PURP, n=30, r=640); A.ring(c, tl, e_w * BEAT, (cx, fy - 400), 1300, 0.5, (0.85, 0.7, 1.0), w=34)
+        for e_, (x_, y_) in zip((ca, cb if cb != PURP else ca), an.get('eyes', [])): A.burst(c, (x_, y_), 26, e_, 0.9)
+        if op[0] > 0:
+            p = lp(); fx.lotus(c, p, lr, tl, ca, cb, op, a=0.42 if lr < 900 else 0.9)
+            for k_, e in enumerate((e1, e2, e3)): A.ring(c, tl, e * BEAT, p, 520 + 160 * k_, 0.35, ca if k_ % 2 == 0 else cb, w=22); A.sparks(c, tl, e * BEAT, p, 26, 0, 180, 300, 1500, 0.45, ca if k_ % 2 == 0 else cb, seed=20 + k_, g=200)
+    fr, mask, gl, M = A.render(R, PL(pl), cam, [('back', back), ('chars', chars), ('glow', glow)])
+    if thrown: fr = A.focuslines(fr, tl, R, (R.w * 0.5, R.h * 0.5), a=0.5, n=70, r0=0.35, col=(0.85, 1, 0.95))
+    fr = fin(fr); return fr + (1 - fr) * min(1.0, max(0.0, (lr - 700) / 1500)) if thrown else fr
+def s_hook2(tl): fr = s_ots(tl, (0.0, 0.8, 1.6, 2.4, 3.15)); return caption(fr, '「去吧，佛怒莲！」', a=min(1.0, max(0.0, (tl - 2.5 * BEAT) / 0.1))) if tl > 2.5 * BEAT else fr
+def s_ots_duel(tl): return s_ots(tl, (0.0, 1.0, 2.0, 3.0, 3.45))
+def s_ots_y2(tl): return s_ots(tl, (-2.0, 0.0, 1.0, 2.0, 2.5), look='yunleng', pl='dusk', cb=WHITEF, twin=False)
+
+_PQ3 = ([(30, 30), (700, 30), (560, 1050), (30, 1050)], [(742, 30), (1270, 30), (1130, 1050), (602, 1050)], [(1312, 30), (1890, 30), (1890, 1050), (1172, 1050)])
+def s_p3(t):
+    """退婚三格：她的手指、他的拳、父亲的脸。（v1 拍 40–44）"""
+    f = nocap(s_hall, t); M = A.cam_m(_ch(t), 1.0, R); hy = GY - 262; t3 = bt(50.3) + (t - bt(42)) * 0.3; f3 = nocap(s_hall, t3) if t >= bt(42) else f; M3 = A.cam_m(_ch(t3), 1.0, R)
+    fr = fx.panels(R, [(_PQ3[0], f, bt(40), scr(M, 1060, hy) + (1.5,)), (_PQ3[1], f, bt(41), scr(M, 640, hy + 40) + (1.5,)), (_PQ3[2], f3, bt(42), scr(M3, 1650, hy) + (1.4,))], t)
+    return cap(fr, t, 40.2, 43.9, '「现在的你，就是一个废物！」')
+_PQ4 = ([(30, 30), (985, 30), (925, 525), (30, 525)], [(1027, 30), (1890, 30), (1890, 525), (967, 525)], [(30, 555), (921, 555), (861, 1050), (30, 1050)], [(963, 555), (1890, 555), (1890, 1050), (903, 1050)])
+def s_p4(t):
+    """苦修四格，一拍亮一格。（时钟从 v1 拍 80 起）"""
+    d = t - bt(80); fs = [nocap(s_train, bt(b0) + max(0.0, d - i * BEAT) * (1.0 if i == 0 else 0.8)) for i, b0 in enumerate((80, 85, 88.5, 92.2)) if d >= i * BEAT]
+    fr = fx.panels(R, [(_PQ4[i], f, bt(80 + i), (960, 540, 1.08)) for i, f in enumerate(fs)], t); return slam(fr, t, 80, 83.9, '玄重尺', (500, 300), px=210)
+_PQ2 = ([(30, 30), (1010, 30), (890, 1050), (30, 1050)], [(1052, 30), (1890, 30), (1890, 1050), (932, 1050)])
+def s_p2(t):
+    """认出彼此：左格云韵，右格萧炎。（v1 拍 200–206）"""
+    a = nocap(s_y2, bt(201.4) + (t - bt(200)) * 0.25); its = [(_PQ2[0], a, bt(200), (700, 430, 1.0))]
+    if t >= bt(202.6): its.append((_PQ2[1], nocap(s_y2, bt(204.4) + (t - bt(202.6)) * 0.25), bt(202.6), (1040, 430, 1.0)))
+    fr = fx.panels(R, its, t); fr = cap(fr, t, 200.2, 206, '云岚宗宗主 云韵：「……药岩？」', x=470, y=930, px=44); return cap(fr, t, 202.9, 206, '「云芝？」', x=1420, y=930, px=44)
+
+EMBER = (1.0, 0.62, 0.25); CP = (0.48, 0.70, 0.92)
+def s_sign(tl):
+    """片尾署名：穿斗篷的码点小人盘坐在药鼎前，炉火是这一集人物的火色。"""
+    Lb = 12 * BEAT; k2 = min(1.0, max(0.0, (tl - (Lb - 2.6)) / 0.5)); col = tuple(a + (b - a) * k2 for a, b in zip(CYAN, (1.0, 0.55, 0.15))); fl = 0.85 + 0.15 * math.sin(tl * 9) * math.sin(tl * 5.3); X0, Y0 = 760, 770
+    fr = np.zeros((R.h, R.w, 3), np.float32); s, c = layer(R.w, R.h); c.scale(R.k, R.k); g = cairo.RadialGradient(X0, Y0 - 140, 20, X0, Y0 - 140, 900); g.add_color_stop_rgba(0, *col, 0.34 * fl); g.add_color_stop_rgba(0.45, *col, 0.08); g.add_color_stop_rgba(1, 0, 0, 0, 0); c.set_source(g); c.paint()
+    c.set_source_rgba(*col, 0.10); c.rectangle(0, Y0 + 96, 1920, 3); c.fill(); rgb, al = rgba(s); fr = fr * (1 - al) + rgb
+    s, c = layer(R.w, R.h); c.scale(R.k, R.k); A.flame(c, tl, lambda dt, sv: (X0 + (sv - 0.5) * 170, Y0 - 150), 60, 0.7, 420, 46, col, a=0.9, seed=3, wob=22); A.burst(c, (X0, Y0 - 170), 110 * fl, (1, 1, 1), 0.5); fr = A.add_glow(fr, s, 16 * R.k, 1.1)
+    s, c = layer(R.w, R.h); c.scale(R.k, R.k); c.set_line_join(cairo.LINE_JOIN_ROUND); DK = (0.075, 0.07, 0.10)
+    for sx in (-1, 0, 1): c.new_path(); c.move_to(X0 + sx * 120 - 22, Y0 + 10); c.line_to(X0 + sx * 150 - 16, Y0 + 100); c.line_to(X0 + sx * 150 + 16, Y0 + 100); c.line_to(X0 + sx * 120 + 22, Y0 + 10); c.close_path(); c.set_source_rgb(*DK); c.fill()
+    c.new_path(); c.move_to(X0 - 170, Y0 - 150); c.curve_to(X0 - 230, Y0 - 40, X0 - 170, Y0 + 60, X0, Y0 + 60); c.curve_to(X0 + 170, Y0 + 60, X0 + 230, Y0 - 40, X0 + 170, Y0 - 150); c.close_path(); c.set_source_rgb(*DK); c.fill_preserve(); c.set_source_rgba(*col, 0.5 * fl); c.set_line_width(4); c.stroke()
+    c.rectangle(X0 - 196, Y0 - 172, 392, 30); c.set_source_rgb(0.07, 0.06, 0.09); c.fill_preserve(); c.set_source_rgba(*col, 0.7 * fl); c.set_line_width(3); c.stroke()
+    for sx in (-1, 1): c.new_path(); c.arc(X0 + sx * 205, Y0 - 190, 34, 0, 7); c.set_source_rgb(*DK); c.set_line_width(14); c.stroke()
+    for i in range(7): c.new_path(); c.arc(X0 - 150 + i * 50, Y0 - 60, 9, 0, 7); c.set_source_rgba(*col, 0.35 * fl); c.fill()
+    # 码点小人：斗篷、兜帽，脸藏在帽檐的黑里，面朝炉火盘坐
+    px_, py_ = 300, Y0 + 100; br = 3 * math.sin(tl * 1.4); c.translate(px_, py_); c.scale(1.25, 1.25); c.translate(-px_, -py_); c.new_path(); c.move_to(px_ - 150, py_); c.curve_to(px_ - 150, py_ - 150, px_ - 90, py_ - 290 - br, px_ - 30, py_ - 372 - br); c.curve_to(px_ + 6, py_ - 430 - br, px_ + 70, py_ - 420 - br, px_ + 96, py_ - 372 - br)
+    c.curve_to(px_ + 112, py_ - 330 - br, px_ + 100, py_ - 300, px_ + 78, py_ - 282); c.curve_to(px_ + 120, py_ - 220, px_ + 150, py_ - 120, px_ + 215, py_ - 60); c.curve_to(px_ + 250, py_ - 30, px_ + 250, py_, px_ + 215, py_); c.close_path(); gg = cairo.LinearGradient(px_ - 150, 0, px_ + 230, 0); gg.add_color_stop_rgb(0, 0.03, 0.03, 0.05); gg.add_color_stop_rgb(1, *[0.10 + 0.16 * v for v in col]); c.set_source(gg); c.fill_preserve(); c.set_source_rgba(*col, 0.3 * fl); c.set_line_width(3); c.stroke()
+    c.new_path(); c.move_to(px_ + 96, py_ - 372 - br); c.curve_to(px_ + 112, py_ - 330 - br, px_ + 100, py_ - 300, px_ + 78, py_ - 282); c.curve_to(px_ + 120, py_ - 220, px_ + 150, py_ - 120, px_ + 215, py_ - 60); c.set_source_rgba(*col, 0.75 * fl); c.set_line_width(5); c.stroke()
+    c.new_path(); c.move_to(px_ + 60, py_ - 390 - br); c.curve_to(px_ + 96, py_ - 372 - br, px_ + 100, py_ - 318, px_ + 70, py_ - 292); c.curve_to(px_ + 30, py_ - 300, px_ + 26, py_ - 362 - br, px_ + 60, py_ - 390 - br); c.close_path(); c.set_source_rgb(0.0, 0.0, 0.01); c.fill()
+    c.new_path(); c.arc(px_ + 76, py_ - 344 - br, 5, 0, 7); c.set_source_rgba(*col, 0.9 * fl); c.fill()
+    c.new_path(); c.move_to(px_ + 120, py_ - 200); c.curve_to(px_ + 190, py_ - 190, px_ + 230, py_ - 215, px_ + 262, py_ - 236); c.set_source_rgb(*DK); c.set_line_width(34); c.set_line_cap(cairo.LINE_CAP_ROUND); c.stroke(); rgb, al = rgba(s); fr = fr * (1 - al) + rgb
+    s, c = layer(R.w, R.h); c.scale(R.k, R.k); A.sparks(c, tl % 1.3 + 0.01, 0.0, (X0, Y0 - 170), 14, 90, 50, 200, 520, 1.2, col, seed=int(tl / 1.3) + 3, g=-60); fr = A.add_glow(fr, s, 8 * R.k, 1.0)
+    fr = caption(fr, '码点小人', y=440, px=170, x=1330, font=_env.BRUSH, a=min(1.0, max(0.0, (tl - 0.5) / 0.5))); fr = caption(fr, '炉火未熄，下一集见。', y=610, px=56, x=1330, col=(255, 232, 190), a=min(1.0, max(0.0, (tl - 1.3) / 0.5)))
+    return fr * min(1.0, tl / 0.5) * min(1.0, max(0.0, (Lb - 0.15 - tl) / 1.2))
+
+L0 = 1e6                                                                                  # 第 4 项写 L0 = 这个镜头吃本地秒（从 0 起）
+SEG = [(0, 4, s_hook2, L0, None), (4, 32, s_stele, 4, None), (32, 40, s_hall, 32, None), (40, 44, s_p3, 40, None), (44, 50, s_hall, 44, None), (50, 52, s_hall, 53, None), (52, 57, s_hall, 56, None),
+       (57, 58.5, s_ring, 65, EMBER), (58.5, 62, s_ring, 70, None), (62, 64, s_ring, 77, None), (64, 68, s_p4, 80, WHITEF), (68, 70, s_swallow, 96, CYAN), (70, 76, s_swallow, 98, None), (76, 80, s_swallow, 112, None),
+       (80, 93, s_fight, 116, None), (93, 100, s_baji, 129, None), (100, 106, s_lotus, 136, None), (106, 110, s_ots_duel, L0, None), (110, 112, s_lotus, 146, None), (112, 120, s_after, 148, None), (120, 126, s_after, 158, None),
+       (126, 129, s_home, 166.4, CP), (129, 132, s_home, 170.2, None), (132, 135, s_home, 174.4, None), (135, 139, s_home, 182.3, None), (139, 142, s_home, 190, None),
+       (142, 149, s_y2, 193, WHITEF), (149, 155, s_p2, 200, None), (155, 157, s_y2, 206, None), (157, 160, s_ots_y2, L0, None), (160, 197, s_y2, 211, None),
+       (197, 201, s_map, 256, WHITEF), (201, 205, s_end, 278, None), (205, 211, s_end, 282, None), (211, 216, s_end, 288, None), (216, 228.5, s_sign, L0, None)]
+def seg_frame(i, t): fb0, fb1, fn, vb, _ = SEG[i]; return fn(t - bt(fb0)) if vb == L0 else fn(bt(vb) + (t - bt(fb0)))
+BADGE = [(5, '斗之力 三段'), (66, '斗者'), (67, '斗师'), (78, '大斗师')]; BADGE_OFF = ((0, 5), (14, 24), (106, 110), (126, 999))
+TAGS = [(34.2, 37.2, '纳兰嫣然', '云岚宗 少宗主', WIND, 'r', 150), (59, 61.8, '药老', '戒指里的灵魂', WHITEF, 'l', 150), (155.1, 157, '云棱', '云岚宗 首席长老', WIND, 'l', 150), (163.2, 166, '云山', '云岚宗上代宗主 · 斗宗', (0.86, 0.95, 1.0), 'l', 150)]
+INKS = [(96, 0.10, 0.26), (161, 0.16, 0.26), (193, 0.12, 0.24)]                            # (拍, 命中后多久定格, 定多久)
+ONO = [(86, '锵', (1330, 300), 16, (120, 255, 235)), (112, '轰', (960, 420), 8, (190, 130, 255)), (122, '锵', (1300, 330), 12, (255, 255, 255)), (193, '轰', (960, 400), 10, (210, 240, 255))]
+PETALS = [(112, CYAN, PURP), (161, CYAN, WHITEF)]
 def frame(t):
-    b = (t - 0.5) / BEAT
-    for (b0, b1, fn) in SHOTS:
-        if b0 <= b < b1 or (b0 == 0 and b < 0): return fn(t)
-    return np.zeros((R.h, R.w, 3), np.float32)
+    b = (t - 0.5) / BEAT; i = next((k for k, sg in enumerate(SEG) if sg[0] <= b < sg[1]), 0 if b < 0 else len(SEG) - 1); tt = t
+    for (hb, d0, hold) in INKS:
+        if bt(hb) + d0 <= t < bt(hb) + d0 + hold: tt = bt(hb) + d0
+    fr = seg_frame(i, tt)
+    if tt != t: fr = fx.ink(fr, R)
+    col = SEG[i][4]
+    if col and t - bt(SEG[i][0]) < 0.45: fr = fx.burn(seg_frame(i - 1, bt(SEG[i][0]) - 1 / 60), fr, (t - bt(SEG[i][0])) / 0.45, col, R, seed=i, mode=('lr', 'out', 'rl', 'up')[i % 4])
+    for (hb, ca, cb) in PETALS:
+        if 0 <= t - bt(hb) < 1.0: s, c = layer(R.w, R.h); c.scale(R.k, R.k); fx.petals(c, (960, 500), t, bt(hb), 330, ca, cb, n=34); fr = A.add_glow(fr, s, 8 * R.k, 1.0)
+    for (hb, ch, pos, rot, gl) in ONO: fr = slam(fr, t, hb, hb + 1.1, ch, pos, px=330, glow=gl, big=2.2, rot=rot)
+    if not any(a <= b < z for a, z in BADGE_OFF):
+        k = max(j for j, (bb, _) in enumerate(BADGE) if bb <= b); fr = badge_(fr, BADGE[k][1], (t - bt(BADGE[k][0])) / 0.22)
+    for (b0, b1, nm, sub, cl, side, y) in TAGS:
+        if b0 <= b < b1: fr = fx.tag(fr, R, nm, sub, cl, min((t - bt(b0)) / 0.25, (bt(b1) - t) / 0.2), side=side, y=y)
+    return fr
+def badge_(fr, text, k): return fx.badge(fr, R, text, flip=min(1.0, max(0.05, k)))
 def u8(fr): return (np.clip(fr, 0, 1) * 255).astype(np.uint8)
 def _cat(k, out):
     open('out/_fcat.txt', 'w').write(''.join(f"file '_fseg{R.h}_{i:02d}.mp4'\n" for i in range(k)))
