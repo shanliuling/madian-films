@@ -690,7 +690,7 @@ def frame(t):
     for (hb, ca, cb) in PETALS:
         if 0 <= t - bt(hb) < 1.0: s, c = layer(R.w, R.h); c.scale(R.k, R.k); fx.petals(c, (960, 500), t, bt(hb), 330, ca, cb, n=34); fr = A.add_glow(fr, s, 8 * R.k, 1.0)
     for (hb, ch, pos, rot, gl) in ONO: fr = slam(fr, t, hb, hb + 1.1, ch, pos, px=330, glow=gl, big=2.2, rot=rot)
-    if not any(a <= b < z for a, z in BADGE_OFF):
+    if b >= 5 and not any(a <= b < z for a, z in BADGE_OFF):
         k = max(j for j, (bb, _) in enumerate(BADGE) if bb <= b); fr = badge_(fr, BADGE[k][1], (t - bt(BADGE[k][0])) / 0.22)
     for (b0, b1, nm, sub, cl, side, y) in TAGS:
         if b0 <= b < b1: fr = fx.tag(fr, R, nm, sub, cl, min((t - bt(b0)) / 0.25, (bt(b1) - t) / 0.2), side=side, y=y)
