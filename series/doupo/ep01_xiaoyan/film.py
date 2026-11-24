@@ -15,7 +15,7 @@ DUR = 175.4; CYAN = (0.25, 1.0, 0.80); PURP = (0.72, 0.35, 1.0); WHITEF = (0.82,
 def PL(name):
     if name == 'yunlan': return yunlan.plates(R)
     if name == 'dusk': return A.tint(yunlan.plates(R), (0.95, 0.60, 0.62))
-    if name in ('stele', 'hall', 'border'): return getattr(sets, name)(R)
+    if name in ('stele', 'hall', 'border', 'wild'): return getattr(sets, name)(R)
     return sets.night(R, name)
 class Act:
     """一个演员：造型 + 姿态关键帧。who='xiaoyan' 用萧炎的专门画法，其余走 F.figure。"""
@@ -129,13 +129,13 @@ def s_stele(t):
 _st = dict(lean=4, head=0, a1=(4, 12), a2=(-4, 6), l1=(8, 0), l2=(-8, -4))
 _xh = Act('xiaoyan', [(0, P(x=640, **dict(_st, lean=8, head=18, eye=0.6))), (bt(43.6), P(x=640, **dict(_st, lean=8, head=18, eye=0.6))), (bt(44.6), P(x=660, **dict(_st, lean=0, head=-4, a1=(10, 60), a2=(-10, 30))), 'o'), (bt(47.7), P(x=664, **dict(_st, lean=-6, head=-6, a1=(-20, 40), a2=(-10, 30)))),
                       (bt(48), P(x=700, lean=14, head=-10, a1=(90, 94), a2=(-30, -50), l1=(34, 4), l2=(-26, -34), mouth=1), 'snap'), (bt(55), P(x=704, lean=10, head=-8, a1=(60, 96), a2=(-20, -30), l1=(30, 4), l2=(-24, -30), mouth=0)),
-                      (bt(62), P(x=900, **_st), 'io'), (bt(63), P(x=940, lean=30, head=30, a1=(30, 60), a2=(20, 50), l1=(20, -80), l2=(10, -85)), 'o'), (bt(64), P(x=940, lean=42, head=40, a1=(30, 60), a2=(20, 50), l1=(20, -80), l2=(10, -85)))], H=YOUNG, held=False)
+                      (bt(62), P(x=1400, **_st), 'io'), (bt(63), P(x=1450, lean=30, head=30, a1=(30, 60), a2=(20, 50), l1=(20, -80), l2=(10, -85)), 'o'), (bt(64), P(x=1450, lean=42, head=40, a1=(30, 60), a2=(20, 50), l1=(20, -80), l2=(10, -85)))], H=YOUNG, held=False)
 _nh = Act('nalan', [(0, P(x=1060, face=-1, **_st)), (bt(38), P(x=1060, face=-1, **_st)), (bt(38.6), P(x=1040, face=-1, lean=8, head=-4, a1=(88, 92), a2=(-20, -40), l1=(20, 0), l2=(-16, -20), mouth=1), 'snap'), (bt(44), P(x=1040, face=-1, lean=8, head=-4, a1=(88, 92), a2=(-20, -40), l1=(20, 0), l2=(-16, -20))),
                     (bt(48.2), P(x=1070, face=-1, lean=-10, head=6, a1=(30, 100), a2=(-10, 20), l1=(4, 0), l2=(-20, -10)), 'snap'), (bt(52), P(x=1070, face=-1, lean=-6, head=4, a1=(30, 100), a2=(-10, 20), l1=(4, 0), l2=(-20, -10))), (bt(52.5), P(x=1050, face=-1, lean=10, head=-6, a1=(92, 96), a2=(-30, -50), l1=(22, 0), l2=(-16, -20), mouth=1), 'snap'), (bt(64), P(x=1050, face=-1, lean=4, head=0, a1=(10, 40), a2=(-10, 10), l1=(10, 0), l2=(-10, -6)))], H=250, held=False)
 _gh = Act('geye', [(0, P(x=1250, face=-1, **dict(_st, a1=(40, 100)))), (bt(64), P(x=1250, face=-1, **dict(_st, a1=(46, 104))))], H=300)
 _fh = Act('xiaozhan', [(0, P(x=1650, face=-1, **_st)), (bt(49.6), P(x=1650, face=-1, **_st)), (bt(50), P(x=1600, face=-1, lean=16, head=-6, a1=(60, 30), a2=(-10, 10), l1=(20, 0), l2=(-14, -10), mouth=1), 'snap'), (bt(64), P(x=1610, face=-1, lean=6, head=0, a1=(20, 40), a2=(-10, 10), l1=(12, 0), l2=(-10, -6)))], H=320)
 _ch = camk([(bt(32), (1100, 560, 0.98, 0)), (bt(37.5), (1120, 580, 1.08, 0), 'lin'), (bt(38.4), (1100, 650, 1.75, 2), 'snap'), (bt(43.8), (1080, 650, 1.9, 2), 'lin'), (bt(44.5), (690, 650, 2.0, -2), 'snap'), (bt(47.8), (690, 640, 2.3, -3), 'lin'), (bt(48), (760, 640, 2.0, -6), 'snap'), (bt(49.8), (790, 640, 1.8, -4), 'lin'),
-             (bt(50), (1540, 620, 1.7, 3), 'hold'), (bt(52), (1520, 620, 1.8, 3), 'lin'), (bt(52.05), (1040, 650, 1.9, -3), 'hold'), (bt(56), (1020, 650, 2.1, -3), 'lin'), (bt(62), (1180, 600, 1.15, 0), 'hold'), (bt(64), (1200, 610, 1.3, 0), 'lin')], [(bt(48), 26, 0.25), (bt(50), 14, 0.15), (bt(38.5), 8, 0.1), (bt(52.5), 8, 0.1)])
+             (bt(50), (1540, 620, 1.7, 3), 'hold'), (bt(52), (1520, 620, 1.8, 3), 'lin'), (bt(52.05), (1040, 650, 1.9, -3), 'hold'), (bt(56), (1020, 650, 2.1, -3), 'lin'), (bt(62), (1480, 620, 1.4, 0), 'hold'), (bt(64), (1500, 630, 1.6, 0), 'lin')], [(bt(48), 26, 0.25), (bt(50), 14, 0.15), (bt(38.5), 8, 0.1), (bt(52.5), 8, 0.1)])
 def s_hall(t):
     b = (t - 0.5) / BEAT
     if 56 <= b < 62: return s_palm(t)
@@ -164,7 +164,89 @@ def s_palm(t):
     if 0 <= n < 4: fr = (1 - fr) if n < 2 else fr + (1 - fr) * 0.6
     fr = fin(fr); return cap(fr, t, 57, 62, '「这不是解除婚约的契约，是把你逐出萧家的休证！」')
 
-SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall)]
+# ================= 64–80 悬崖：戒指、药老、焚诀（音乐安静）
+_xr = Act('xiaoyan', [(0, P(x=1000, **_st)), (bt(64.6), P(x=1000, lean=-14, head=-6, a1=(-150, -170), a2=(20, 40), l1=(-10, 0), l2=(20, -10))), (bt(65), P(x=1040, lean=26, head=-8, a1=(80, 70), a2=(-30, -20), l1=(30, 0), l2=(-26, -30)), 'snap'), (bt(67), P(x=1040, lean=14, head=10, a1=(10, 20), a2=(-6, 4), l1=(20, 0), l2=(-16, -10))),
+                      (bt(69.5), P(x=1040, lean=10, head=10, a1=(10, 20), a2=(-6, 4), l1=(20, 0), l2=(-16, -10))), (bt(70.2), P(x=960, lean=-16, head=-20, a1=(40, 110), a2=(-30, -10), l1=(30, 10), l2=(-10, -30), mouth=1), 'snap'), (bt(76), P(x=960, lean=-6, head=-22, a1=(10, 30), a2=(-10, 0), l1=(16, 4), l2=(-10, -12))), (bt(80), P(x=970, lean=2, head=-24, a1=(10, 30), a2=(-10, 0), l1=(12, 2), l2=(-10, -8)))], H=YOUNG, held=False)
+_yr = Act('yaolao', [(0, P(x=1260, air=250, face=-1, lean=4, a1=(10, 30), a2=(-10, 10))), (bt(73.6), P(x=1260, air=250, face=-1, lean=4, a1=(10, 30), a2=(-10, 10))), (bt(74.4), P(x=1250, air=256, face=-1, lean=8, a1=(60, 110), a2=(-10, 10)), 'o'), (bt(80), P(x=1250, air=262, face=-1, lean=8, a1=(64, 112), a2=(-10, 10)))], H=340, mod=lambda p, t: dict(p, air=p['air'] + 10 * math.sin(t * 1.6)))
+_ringp = track([(bt(64.9), (1090, 560)), (bt(65.6), (1420, 420), 'o'), (bt(66.6), (1560, 900), 'i'), (bt(67.6), (1520, 1100), 'lin'), (bt(69.6), (1250, 600), 'io'), (bt(80), (1250, 600))])
+_cr = camk([(bt(64), (1000, 500, 0.95, 0)), (bt(67), (1160, 540, 1.15, 0), 'io'), (bt(69.6), (1160, 560, 1.3, 0), 'io'), (bt(70.2), (1110, 540, 1.5, 0), 'snap'), (bt(80), (1110, 520, 1.75, 0), 'lin')], [(bt(70), 10, 0.12)])
+def s_ring(t):
+    b = (t - 0.5) / BEAT; rp = _ringp(t); ya = min(1.0, max(0.0, (b - 70) / 0.8)); yh = _yr.J(t)['h1']
+    def glow(c):
+        if b >= 64.9: A.burst(c, rp, 16 + (30 if b > 68 else 0) * min(1, (b - 68) / 1.5) + 4 * math.sin(t * 9), WHITEF, 0.95)
+        if b > 68: A.flame(c, t, lambda dt, sv: (rp[0] + (sv - 0.5) * 30, rp[1]), 26, 0.7, 360 * min(1, (b - 68) / 2), 24, WHITEF, a=0.7, seed=3, wob=20)
+        if b > 74.2: A.flame(c, t, lambda dt, sv: (yh[0] - 10 + (sv - 0.5) * 30, yh[1] - 16), 40, 0.5, 300, 30, WHITEF, a=min(1.0, (b - 74.2) * 2), seed=9, wob=16); A.burst(c, (yh[0] - 10, yh[1] - 30), 70, WHITEF, 0.5 * min(1.0, (b - 74.2) * 2))
+        A.ring(c, t, bt(70), rp, 520, 0.6, WHITEF, sq=1.0, w=18)
+    fr, mask, gl, M = A.render(R, PL('cliff'), _cr(t), [('over', lambda c: shadow(c, [_xr], t)), ('chars', lambda c: (_xr.draw(c, t), _yr.draw(c, t, alpha=ya) if ya > 0 else None)), ('glow', glow)]); fr = fin(fr)
+    if b < 64.5: fr = fr * (b - 64) * 2
+    fr = cap(fr, t, 64.4, 69.6, '那一夜，他把母亲留下的戒指扔下了悬崖'); fr = cap(fr, t, 70.4, 74, '「不就是吸收了你三年的斗之气嘛。」'); fr = cap(fr, t, 74.3, 77, '废了他三年的，是这枚戒指里的老人——药老')
+    fr = cap(fr, t, 77.2, 80, '他给的功法，每进化一次，都必须吞噬一种异火'); return slam(fr, t, 77, 80, '焚诀', (420, 420), px=260, glow=(200, 230, 255), big=2.0)
+
+# ================= 80–96 苦修：玄重尺（重鼓）
+_wk = lambda p, t: dict(p, l1=(34 * math.sin(p['x'] / 34), 34 * math.sin(p['x'] / 34) - 30), l2=(-34 * math.sin(p['x'] / 34), -34 * math.sin(p['x'] / 34) - 30), air=6 * abs(math.cos(p['x'] / 34))) if bt(88.2) < t < bt(91.4) else p
+_xt = Act('xiaoyan', [(0, P(x=760, lean=-10, head=-10, a1=(40, 100), a2=(-30, -20), l1=(20, 10), l2=(-14, -30), w=-80)), (bt(81.5), P(x=760, lean=-6, head=6, a1=(40, 100), a2=(-30, -20), l1=(20, 10), l2=(-14, -30), w=-80)), (bt(82.4), P(x=880, lean=30, head=10, a1=(60, 80), a2=(40, 70), l1=(40, 0), l2=(-30, -50), w=-80, g2=-0.085), 'io'),
+                      (bt(83.7), P(x=880, lean=36, head=4, a1=(64, 84), a2=(40, 70), l1=(46, -6), l2=(-30, -56), w=-76, g2=-0.085, mouth=1)),
+                      (bt(84), P(x=880, lean=-14, head=-6, a1=(150, 170), a2=(60, 110), l1=(30, 10), l2=(-24, -30), w=120, g2=-0.085, mouth=1), 'i'), (bt(84.7), P(x=880, lean=-10, head=-6, a1=(140, 165), a2=(60, 110), l1=(30, 10), l2=(-24, -30), w=110, g2=-0.085)),
+                      (bt(85), P(x=930, lean=34, head=-20, a1=(70, 84), a2=(60, 80), l1=(56, -4), l2=(-40, -52), w=-20, g2=-0.085, mouth=1), 'ii'), (bt(85.7), P(x=930, lean=30, head=-18, a1=(70, 84), a2=(60, 80), l1=(52, -4), l2=(-40, -50), w=-26, g2=-0.085)),
+                      (bt(86), P(x=980, lean=-8, head=-6, a1=(100, 100), a2=(60, 80), l1=(40, 0), l2=(-30, -40), w=40, g2=-0.085, mouth=1), 'ii'), (bt(86.7), P(x=980, lean=-12, head=-6, a1=(120, 130), a2=(60, 80), l1=(40, 0), l2=(-30, -40), w=80, g2=-0.085)),
+                      (bt(87), P(x=1040, lean=40, head=-24, a1=(64, 80), a2=(60, 80), l1=(60, -6), l2=(-44, -56), w=-40, g2=-0.085, mouth=1), 'ii'), (bt(88.2), P(x=1040, lean=20, head=-10, a1=(6, 16), a2=(-6, 10), l1=(20, 0), l2=(-20, -20), w=-80)),
+                      (bt(91.4), P(x=2500, lean=30, head=-20, a1=(-30, 40), a2=(40, 90), w=-80), 'lin'), (bt(91.7), P(x=2560, lean=-16, head=-6, a1=(150, 172), a2=(60, 110), l1=(30, 10), l2=(-24, -30), w=124, g2=-0.085, glint=0.8), 'o'),
+                      (bt(92), P(x=2620, lean=44, head=-26, a1=(62, 78), a2=(60, 80), l1=(64, -8), l2=(-46, -60), w=-44, g2=-0.085, mouth=1, glint=1.0), 'ii'), (bt(96), P(x=2620, lean=40, head=-24, a1=(62, 78), a2=(60, 80), l1=(60, -8), l2=(-46, -58), w=-46, g2=-0.085, glint=1.0))], H=300, mod=_wk)
+_ct = camk([(bt(80), (900, 600, 1.9, -4)), (bt(82), (880, 640, 1.5, 0), 'o'), (bt(84), (900, 640, 1.45, 0), 'lin'), (bt(88), (1000, 650, 1.6, 2), 'lin'), (bt(88.3), (1100, 640, 1.2, 0), 'io'), (bt(91.4), (2440, 640, 1.2, 0), 'lin'), (bt(92), (2700, 660, 1.7, -6), 'i'), (bt(96), (2720, 640, 1.9, -4), 'o')], [(bt(80), 40, 0.3), (bt(84), 8, 0.1), (bt(85), 14, 0.12), (bt(86), 8, 0.1), (bt(87), 16, 0.14), (bt(92), 44, 0.35)])
+ROCK = (2790, GY)
+def s_train(t):
+    b = (t - 0.5) / BEAT; fall = min(1.0, max(0.0, (t - bt(79.7)) / (bt(80) - bt(79.7)))) ** 2; held = b >= 82.2; onback = 88.2 <= b < 91.5; J = _xt.J(t)
+    def ground(c):
+        shadow(c, [_xt], t)
+        if b < 92:                                                                        # 路边一块大石头，等着挨那一尺
+            c.move_to(ROCK[0] - 150, GY + 10); c.line_to(ROCK[0] - 120, GY - 190); c.line_to(ROCK[0] - 20, GY - 270); c.line_to(ROCK[0] + 110, GY - 210); c.line_to(ROCK[0] + 160, GY + 10); c.close_path(); c.set_source_rgb(0.42, 0.44, 0.46); c.fill_preserve(); c.set_source_rgb(0.08, 0.09, 0.12); c.set_line_width(5); c.stroke()
+        if b < 82.2: c.save(); c.translate(905, GY + 40 - 900 * (1 - fall)); c.rotate(0.14); c.rectangle(-22, -300, 44, 300); c.set_source_rgb(0.05, 0.05, 0.08); c.fill_preserve(); c.set_source_rgb(0.3, 0.32, 0.4); c.set_line_width(4); c.stroke(); c.restore()
+        A.debris(c, t, bt(80), (905, GY), 24, 400, 1300, (0.3, 0.36, 0.26), seed=3, floor=GY + 10); A.puff(c, t, bt(80), (905, GY + 6), 26, 260, 150, 34, 180, 1.2, (0.8, 0.84, 0.76, 0.7), 4)
+        A.debris(c, t, bt(92), ROCK, 46, 500, 1900, (0.42, 0.44, 0.46), seed=6, floor=GY + 10, size=30); A.puff(c, t, bt(92), ROCK, 30, 300, 200, 40, 220, 1.4, (0.8, 0.82, 0.8, 0.75), 7)
+        for i, tb in enumerate((85, 87)): A.puff(c, t, bt(tb), (J['pel'][0] + 150, GY + 6), 12, 120, 60, 20, 100, 0.7, (0.8, 0.84, 0.76, 0.6), 10 + i)
+    def glow(c):
+        if held and not onback: wtrail(c, _xt, t, 0.92, (0.5, 0.6, 0.9), th=900)
+        A.ring(c, t, bt(80), (905, GY + 8), 700, 0.5, (1, 1, 1), w=24); A.sparks(c, t, bt(80), (905, GY), 50, 90, 80, 400, 2000, 0.5, GOLD, seed=5)
+        A.ring(c, t, bt(92), ROCK, 900, 0.5, (1, 1, 1), w=30); A.sparks(c, t, bt(92), (ROCK[0] - 40, GY - 200), 70, 60, 170, 500, 2600, 0.6, GOLD, seed=8)
+    fr, mask, gl, M = A.render(R, PL('wild'), _ct(t), [('over', ground), ('chars', lambda c: _xt.draw(c, t, held=held and not onback, back=onback)), ('glow', glow)])
+    fr = hits(fr, t, mask, gl, M, [(bt(80), (905, GY - 100), (1, 1, 2, 2, 3)), (bt(92), (ROCK[0] - 40, GY - 200), (1, 1, 2, 2, 2, 3))])
+    if 88.3 < b < 91.4: fr = A.speedlines(fr, t, R, a=0.5, ang=0)
+    fr = fin(fr); fr = slam(fr, t, 80, 83.6, '玄重尺', (1440, 420), px=260, glow=(120, 140, 255), big=3.0); fr = cap(fr, t, 80.6, 83.8, '背上它，斗气就被压住——药老给他的第一件东西')
+    fr = cap(fr, t, 84, 88, '斗之气 · 九段', y=110, px=64, col=(255, 226, 170)); fr = cap(fr, t, 88, 92, '斗者', y=110, px=72, col=(255, 226, 170)); fr = slam(fr, t, 92, 96, '斗师', (700, 300), px=230, glow=(255, 190, 60), big=2.6)
+    fr = cap(fr, t, 88.4, 91.8, '魔兽山脉，然后是塔戈尔大沙漠'); return cap(fr, t, 92.6, 96, '焚诀要的第一种火，就埋在黄沙底下')
+
+# ================= 96–116 山洞：吞噬青莲地心火
+_xs = Act('xiaoyan', [(0, P(x=960, lean=6, head=22, a1=(40, 100), a2=(30, 96), l1=(82, -70), l2=(70, -84), eye=0.8)), (bt(97.8), P(x=960, lean=6, head=22, a1=(40, 100), a2=(30, 96), l1=(82, -70), l2=(70, -84), eye=0.8)),
+                      (bt(98), P(x=960, lean=-10, head=-30, a1=(50, 160), a2=(40, 150), l1=(82, -70), l2=(70, -84), eye=0.0, mouth=1), 'snap'), (bt(99), P(x=960, lean=0, head=0, a1=(30, 80), a2=(20, 76), l1=(82, -70), l2=(70, -84), eye=0.0), 'o'),
+                      (bt(104), P(x=960, lean=14, head=20, a1=(30, 80), a2=(20, 76), l1=(82, -70), l2=(70, -84), eye=0.0, mouth=1)), (bt(108), P(x=960, lean=-16, head=-26, a1=(-20, 40), a2=(-30, 30), l1=(82, -70), l2=(70, -84), eye=0.0, mouth=1), 'io'),
+                      (bt(111.8), P(x=960, lean=2, head=0, a1=(30, 80), a2=(20, 76), l1=(82, -70), l2=(70, -84), eye=0.0), 'io'), (bt(112), P(x=960, lean=0, head=-4, a1=(30, 80), a2=(20, 76), l1=(82, -70), l2=(70, -84), eye=1.2, glint=1.0), 'snap'), (bt(116), P(x=960, lean=0, head=-4, a1=(30, 80), a2=(20, 76), l1=(82, -70), l2=(70, -84), eye=1.0, glint=1.0))], H=330, held=False,
+           mod=lambda p, t: dict(p, x=p['x'] + (6 * math.sin(t * 70) if bt(98) < t < bt(111.5) else 2 * math.sin(t * 60) if t < bt(98) else 0)))
+_cs = camk([(bt(96), (1010, 640, 3.0, 0)), (bt(97.9), (1010, 636, 3.3, 0), 'lin'), (bt(98), (960, 600, 1.5, 0), 'snap'), (bt(104), (960, 580, 1.25, 0), 'lin'), (bt(108), (960, 560, 1.1, 3), 'lin'), (bt(111.8), (960, 600, 1.5, 0), 'io'), (bt(112), (1010, 560, 4.2, -4), 'snap'), (bt(114), (1010, 560, 4.6, -3), 'lin'), (bt(114.05), (960, 540, 1.0, 0), 'hold'), (bt(116), (960, 540, 1.1, 0), 'lin')], [(bt(98), 30, 0.3), (bt(104), 12, 2.2), (bt(112), 24, 0.25)])
+def s_swallow(t):
+    b = (t - 0.5) / BEAT; J = _xs.J(t); hp = ((J['h1'][0] + J['h2'][0]) / 2 + 10, (J['h1'][1] + J['h2'][1]) / 2 - 14); burn = min(1.0, max(0.0, (b - 98) / 1.0)) * (1.0 if b < 112 else max(0.35, 1 - (b - 112) / 2)); shell = max(0.0, min(1.0, (110.5 - b) / 10)) if b >= 98 else 0
+    def seat(c):                                                                          # 青莲座
+        for i in range(9): th = (i - 4) / 4 * 1.25; c.save(); c.translate(960 + math.sin(th) * 150, GY + 14 - math.cos(th) * 20); c.rotate(th * 0.9); c.scale(34, 78); c.arc(0, -0.6, 1, 0, 7); c.restore(); c.set_source_rgba(0.16, 0.62, 0.5, 0.95); c.fill_preserve(); c.set_source_rgb(0.03, 0.14, 0.12); c.set_line_width(4); c.stroke()
+    def chars(c):
+        _xs.draw(c, t)
+        if shell > 0:                                                                     # 血莲丹化成的血色甲，一片片烧掉
+            c.push_group(); _xs.draw(c, t); c.set_operator(cairo.OPERATOR_IN); c.set_source_rgba(0.75, 0.05, 0.08, 1); c.paint(); c.set_operator(cairo.OPERATOR_DEST_OUT)
+            for i in range(60):
+                if rnd(i, 9) > shell: c.arc(960 - 150 + 300 * rnd(i, 1), GY - 330 * rnd(i, 2), 46, 0, 7); c.set_source_rgba(0, 0, 0, 1); c.fill()
+            c.set_operator(cairo.OPERATOR_OVER); c.pop_group_to_source(); c.paint_with_alpha(0.82)
+    def glow(c):
+        if b < 98: A.flame(c, t, lambda dt, sv: (hp[0] + (sv - 0.5) * 24, hp[1]), 30, 0.5, 200, 20, CYAN, a=0.95, seed=3, wob=10); A.burst(c, hp, 30, CYAN, 0.8)
+        else:
+            A.flame(c, t, lambda dt, sv: (960 + (sv - 0.5) * 420, GY + 10), 70, 0.8, 900, 80, CYAN, a=0.55 * burn, seed=13, wob=40)
+            if b < 112: A.emit(c, t, bt(98), min(t, bt(110.5)), 30, lambda tb: (960 + (rnd(int(tb * 97), 1) - 0.5) * 160, GY - 60 - 240 * rnd(int(tb * 97), 2)), ang=90, spread=180, v0=200, v1=900, life=0.6, col=(1.0, 0.25, 0.2), w=4, g=-300, seed=17)
+            A.ring(c, t, bt(98), (960, GY - 150), 1400, 0.6, CYAN, sq=1.0, w=40); A.ring(c, t, bt(112), (960, GY - 150), 1600, 0.6, (0.8, 1, 0.95), sq=1.0, w=40)
+            if b >= 114: lotus(c, (960, GY - 150), 0, t, a=0); A.burst(c, (960, GY - 160), 500 + 60 * math.sin(t * 8), CYAN, 0.35, rays=20, t=t, seed=5)
+    fr, mask, gl, M = A.render(R, PL('cave'), _cs(t), [('over', seat), ('back', lambda c: aura(c, _xs, t, CYAN, n=70, k=0.9 * burn, rise=700, r0=70)), ('chars', chars), ('glow', glow)])
+    fr = hits(fr, t, mask, gl, M, [(bt(98), (960, GY - 150), (1, 1, 2, 2, 3)), (bt(112), (960, GY - 200), (2, 2, 3))]); fr = fin(fr)
+    if 112 <= b < 114: fr = A.focuslines(fr, t, R, (R.w * 0.5, R.h * 0.5), a=0.5, n=60, r0=0.4, col=(0.8, 1, 0.93))
+    fr = cap(fr, t, 96.2, 98, '「吞下去…」'); fr = cap(fr, t, 99, 103.6, '吞噬异火，就算备齐了丹药，成功率也只有一成'); fr = cap(fr, t, 104, 108, '血莲丹化成的血甲，被一层层烧穿'); fr = cap(fr, t, 108.4, 111.8, '撑不过去，就是一把灰')
+    fr = slam(fr, t, 114, 116, '青莲地心火', (960, 400), px=240, glow=(40, 255, 200), big=2.4); return cap(fr, t, 114.3, 116, '异火榜 · 第十九', y=640, px=60, col=(190, 255, 235))
+
+SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall), (64, 80, s_ring), (80, 96, s_train), (96, 116, s_swallow)]
 def frame(t):
     b = (t - 0.5) / BEAT
     for (b0, b1, fn) in SHOTS:
