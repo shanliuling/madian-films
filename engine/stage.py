@@ -41,6 +41,7 @@ class Scene:
     def render(s, t, cam, R):
         fr = None
         for (pl, d) in s.bg:
+            if callable(pl): pl = pl(t)                                                # 会随时间变的背景板
             rgb, al = pl if isinstance(pl, tuple) else (pl, None); ps = rgb.shape[1] / 1920; zz, tx, ty = s._M(cam, d, R); M = np.float32([[zz / ps, 0, tx], [0, zz / ps, ty]])
             w = cv2.warpAffine(rgb, M, (R.w, R.h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT if al is None else cv2.BORDER_CONSTANT)
             if al is None: fr = w

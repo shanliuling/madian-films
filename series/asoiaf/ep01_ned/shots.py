@@ -74,7 +74,9 @@ def bricks(img, r, a=0.55):
     img = plain(img, d, blur=1.2); return img * (0.86 + 0.14 * cv2.GaussianBlur(r.random((H, W)).astype(np.float32), (0, 0), 5)[..., None] * 2)
 
 # ---------- 1 侧脸（火光） / 黑牢
-def face(cell=False):
+_FACEBG = {}
+def face(cell=False, closed=0.0, tear=0.0):
+    if cell in _FACEBG: return _face_head(_FACEBG[cell], closed, tear)                   # 墙和火光只画一次，头每次重画（闭眼、流泪）
     r = np.random.default_rng(8); TX, TY = 1560, 400; img = bricks(firelight(TX, TY), r); img = torch(img, TX, TY)
     s, c = layer()
     for i in range(40): c.set_source_rgba(1.0, 0.6, 0.2, r.uniform(0.3, 0.9)); c.arc(TX + r.normal(0, 60), TY - r.uniform(100, 420), r.uniform(1, 2.6), 0, math.tau); c.fill()
@@ -84,7 +86,9 @@ def face(cell=False):
             c.set_source_rgba(0, 0, 0, 0.55)
             for i in range(7): c.move_to(1020 + i * 120, 0); c.line_to(700 + i * 150, H); c.line_to(740 + i * 150, H); c.line_to(1050 + i * 120, 0); c.close_path(); c.fill()
         img = plain(img, bars, blur=14)
-    s, c = layer(); bighead.ned(c, 640, 470, 640, 1)
+    _FACEBG[cell] = img; return _face_head(img, closed, tear)
+def _face_head(img, closed, tear):
+    s, c = layer(); bighead.ned(c, 640, 470, 640, 1, closed=closed, tear=tear)
     img = lit(img, s, light=(1, -0.15), rim=WARMR, rim_w=5, rim_a=0.75, half_w=22, half_a=0.16, shade_w=70, shade_a=0.50)
     m = np.clip((760 - xx) / 700, 0, 1)[..., None] ** 1.3; img = img * (1 - 0.55 * m); return fin(img, 0.55, 0.03, 3)
 
