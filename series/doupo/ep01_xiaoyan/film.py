@@ -540,7 +540,50 @@ def s_eyes(t):
     if 0 <= n < 4: fr = 1 - fr if n < 2 else fr + (1 - fr) * 0.6
     fr = fin(fr); return cap(fr, t, 228.6, 231, '「接下来，便交给为师吧。」')
 
-SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall), (64, 80, s_ring), (80, 96, s_train), (96, 116, s_swallow), (116, 129, s_fight), (129, 136, s_baji), (136, 148, s_lotus), (148, 166, s_after), (166, 193, s_home), (193, 248, s_y2)]
+# ================= 248–262 地图：逃出加玛帝国
+_MA, _MB, _MC = (-600, -130), (-40, 90), (600, -30)
+def s_map(t):
+    b = (t - 0.5) / BEAT; g = min(1.0, max(0.0, (b - 249) / 11)); INKC = (0.14, 0.11, 0.10)
+    def route(u): return (_MA[0] + (_MB[0] - _MA[0]) * u * 2, _MA[1] + (_MB[1] - _MA[1]) * u * 2 + 50 * math.sin(u * 12)) if u < 0.5 else (_MB[0] + (_MC[0] - _MB[0]) * (u * 2 - 1), _MB[1] + (_MC[1] - _MB[1]) * (u * 2 - 1) + 40 * math.sin(u * 12))
+    def d(c):
+        z = 1.0 + 0.06 * g; c.scale(z, z); c.set_line_join(cairo.LINE_JOIN_ROUND)
+        for i in range(90):                                                               # 山
+            x = -900 + 1800 * rnd(i, 1); y = -420 + 840 * rnd(i, 2); s_ = 26 + 50 * rnd(i, 3) * (2.0 if abs(x - _MB[0]) < 330 else 1.0); c.move_to(x - s_, y + s_ * 0.6); c.line_to(x, y - s_ * 0.6); c.line_to(x + s_, y + s_ * 0.6); c.set_source_rgba(*INKC, 0.25 + 0.4 * rnd(i, 4)); c.set_line_width(5); c.stroke()
+        c.move_to(700, -540)
+        for i in range(12): c.line_to(700 + 50 * math.sin(i * 1.7), -540 + i * 100)
+        c.set_source_rgba(0.55, 0.1, 0.1, 0.8); c.set_line_width(8); c.set_dash([26, 18]); c.stroke(); c.set_dash([])
+        c.move_to(*_MA)
+        for k in range(1, int(g * 80) + 1): c.line_to(*route(k / 80))
+        c.set_source_rgba(0.6, 0.08, 0.08, 0.95); c.set_line_width(10); c.set_line_cap(cairo.LINE_CAP_ROUND); c.stroke()
+        for i in range(16):                                                               # 搜山的云岚宗弟子
+            th = -0.9 + 1.9 * rnd(i, 6); r_ = (80 + 520 * rnd(i, 7)) * min(1.0, (b - 248) / 9); p = (_MA[0] + math.cos(th) * r_, _MA[1] + math.sin(th) * r_ * 0.8); c.arc(p[0], p[1], 11, 0, 7); c.set_source_rgb(0.96, 0.98, 1); c.fill_preserve(); c.set_source_rgb(*INKC); c.set_line_width(4); c.stroke()
+        for (p, s_) in ((_MA, '云岚山'), (_MB, '魔兽山脉'), ((_MC[0] + 160, _MC[1]), '边境')): c.arc(p[0], p[1], 16, 0, 7); c.set_source_rgb(*INKC); c.fill(); wtext(c, s_, p[0], p[1] - 70, 62, INKC)
+        wtext(c, '加玛帝国', -100, -400, 110, INKC, 0.35); q = route(g); A.burst(c, q, 40 + 6 * math.sin(t * 10), CYAN, 1.0); A.flame(c, t, lambda dt, sv: (q[0] + (sv - 0.5) * 20, q[1]), 20, 0.4, 160, 20, CYAN, a=0.9, seed=3)
+    fr = fin(_closeup(t, d, (0.90, 0.85, 0.72), (0.78, 0.70, 0.56))); fr = fr * min(1.0, (b - 248) * 3 + 0.2) * min(1.0, (262 - b) * 3 + 0.0)
+    fr = cap(fr, t, 248.5, 254.5, '云岚宗满山搜捕。他钻进魔兽山脉，一路逃向边境'); return cap(fr, t, 255, 261.6, '赢了三年之约的人，成了加玛帝国容不下的人')
+
+# ================= 262–295 尾：边境、魂殿、下集
+_xe = Act('xiaoyan', [(bt(262), P(x=250, lean=8, a1=(6, 16), a2=(-6, 10))), (bt(268), P(x=1150, lean=8, a1=(6, 16), a2=(-6, 10)), 'lin'), (bt(268.6), P(x=1160, lean=2, head=0), 'o'), (bt(269), P(x=1160, face=-1, lean=0, head=-12), 'hold'), (bt(290), P(x=1160, face=-1, lean=0, head=-14))], back=True, held=False, mod=lambda p, t: _wlk(p, t) if t < bt(268) else p)
+_ye = Act('yaolao', [(0, P(x=900, air=230, face=1, lean=4, a1=(10, 30), a2=(-10, 10))), (bt(290), P(x=900, air=236, face=1, lean=4, a1=(30, 80), a2=(-10, 10)))], H=340, mod=lambda p, t: dict(p, air=p['air'] + 10 * math.sin(t * 1.6)))
+_ce = camk([(bt(262), (700, 560, 1.0, 0)), (bt(268), (1000, 580, 1.1, 0), 'lin'), (bt(278), (1040, 600, 1.4, 0), 'io'), (bt(282), (1050, 600, 1.6, 0), 'lin'), (bt(288), (1050, 590, 1.8, 0), 'lin')], [(bt(282), 30, 0.3)])
+def s_end(t):
+    b = (t - 0.5) / BEAT
+    if b >= 288:                                                                          # 下集
+        fr = np.zeros((R.h, R.w, 3), np.float32); s, c = layer(R.w, R.h); c.scale(R.k, R.k); A.flame(c, t, lambda dt, sv: (260 + 1400 * sv, 820 + 40 * math.sin(sv * 9)), 130, 0.9, 460, 70, (1.0, 0.5, 0.15), a=0.5, seed=5, wob=30); fr = A.add_glow(fr, s, 20 * R.k, 1.0)
+        fr = slam(fr, t, 288, 296, '炎帝', (960, 500), px=380, glow=(255, 130, 30), big=2.0); fr = caption(fr, '下集', y=250, px=64, col=(255, 226, 170)); fr = caption(fr, '斗之力三段的废物，凭什么成了炎帝？', y=760, px=50); return fr * min(1.0, max(0.0, (DUR - 0.2 - t) / 1.2))
+    ya = min(1.0, max(0.0, (b - 272) / 1.5)); dark = min(1.0, max(0.0, (b - 282) * 8))
+    def glow(c):
+        if dark > 0:
+            A.flame(c, t, lambda dt, sv: (200 + 1700 * sv, GY + 60), 90, 1.0, 700, 90, (0.45, 0.15, 0.8), a=0.5, seed=7, wob=40)
+            for i in range(5): x0 = 300 + i * 340; c.move_to(x0, 60); c.line_to(x0 + 260 * (1 if i % 2 else -1), GY + 40); c.set_source_rgba(0.55, 0.3, 0.9, 0.8); c.set_line_width(14); c.set_dash([34, 16], t * 60); c.stroke(); c.set_dash([])
+    fr, mask, gl, M = A.render(R, PL('border'), _ce(t), [('over', lambda c: shadow(c, [_xe], t)), ('chars', lambda c: (_ye.draw(c, t, alpha=ya) if ya > 0 else None, _xe.draw(c, t)))])
+    if dark > 0: s2, c2 = A.ctx(R, M); glow(c2); fr = fr * (1 - 0.82 * dark); fr = A.add_glow(fr, s2, 14 * R.k, 1.0)
+    fr = fin(fr) * min(1.0, (b - 262) * 2 + 0.1)
+    if 0 <= int(round((t - bt(282)) * 60)) < 3: fr = fr + (1 - fr) * 0.7
+    fr = cap(fr, t, 262.4, 268.4, '加玛帝国 · 边境', y=80, px=58, col=(255, 226, 170)); fr = cap(fr, t, 263, 268.6, '他穿出魔兽山脉，走到了帝国的边境'); fr = cap(fr, t, 269.4, 277.6, '父亲失踪，家族被迫迁走——这笔账，他说下次回来自己算')
+    fr = cap(fr, t, 278, 281.9, '路上，药老第一次提起了一个名字'); fr = slam(fr, t, 282, 288, '魂殿', (960, 440), px=400, glow=(150, 60, 255), big=2.6); return fr * (min(1.0, (288 - b) * 3) if b > 287.6 else 1.0)
+
+SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall), (64, 80, s_ring), (80, 96, s_train), (96, 116, s_swallow), (116, 129, s_fight), (129, 136, s_baji), (136, 148, s_lotus), (148, 166, s_after), (166, 193, s_home), (193, 248, s_y2), (248, 262, s_map), (262, 296, s_end)]
 def frame(t):
     b = (t - 0.5) / BEAT
     for (b0, b1, fn) in SHOTS:
