@@ -106,14 +106,14 @@ def ruler(c, J, lw, L=0.92, flame=0.0):
     for i in range(5):
         x = x0 + (0.11 + 0.15 * i) * H; c.move_to(x - 0.04 * H, -W * 0.35); c.line_to(x, W * 0.3); c.line_to(x + 0.04 * H, -W * 0.35); c.move_to(x - 0.02 * H, W * 0.45); c.line_to(x + 0.02 * H, W * 0.45)
     c.stroke(); c.restore()
-def sword(c, J, lw, L=0.66, bend=0.0, col=(0.72, 0.97, 0.95), a=1.0, at=None, d=None):
+def sword(c, J, lw, L=0.66, bend=0.0, col=(0.72, 0.97, 0.95), a=1.0, at=None, d=None, guard=(0.55, 0.8, 0.82), hilt=(0.2, 0.32, 0.4)):
     """淡青长剑；bend ≠ 0 时剑身被压成弧。at/d 给了就画一把不在手里的剑（残影）。"""
     H = J['H'] if J else 300; h = at or J['h1']; d = d or J['wd']; c.save(); c.translate(*h); c.rotate(math.atan2(d[1], d[0])); n = 14; Lp = L * H; x0 = 0.035 * H
     pts = [(x0 + (Lp - x0) * i / n, -bend * Lp * math.sin(math.pi * i / n) * (1 if d[0] >= 0 else -1)) for i in range(n + 1)]; ribbon_path(c, pts, lambda u: 0.013 * H * (1 - u ** 6 * 0.95))
     c.set_source_rgba(*col, a); c.fill_preserve(); c.set_source_rgba(*INK, a); c.set_line_width(lw * 0.8); c.stroke(); c.move_to(*pts[0])
     for q in pts[1:]: c.line_to(*q)
     c.set_source_rgba(1, 1, 1, a); c.set_line_width(lw * 0.7); c.stroke()
-    if a >= 1: c.rectangle(x0 - 0.012 * H, -0.035 * H, 0.014 * H, 0.07 * H); _ink(c, (0.55, 0.8, 0.82), lw * 0.8); c.rectangle(-0.06 * H, -0.011 * H, 0.085 * H, 0.022 * H); _ink(c, (0.2, 0.32, 0.4), lw * 0.8)
+    if a >= 1: c.rectangle(-0.06 * H, -0.011 * H, 0.085 * H, 0.022 * H); _ink(c, hilt, lw * 0.8); c.move_to(x0 - 0.01 * H, 0); c.curve_to(x0 - 0.03 * H, -0.05 * H, x0 + 0.02 * H, -0.05 * H, x0 + 0.05 * H, -0.012 * H); c.line_to(x0 + 0.05 * H, 0.012 * H); c.curve_to(x0 + 0.02 * H, 0.05 * H, x0 - 0.03 * H, 0.05 * H, x0 - 0.01 * H, 0); c.close_path(); _ink(c, guard, lw * 0.8)   # 翼形护手
     c.restore()
 
 XIAOYAN = dict(hair=(0.07, 0.10, 0.20), hair_hi=(0.26, 0.42, 0.66), iris=(0.10, 0.12, 0.20), robe=(0.15, 0.16, 0.23), robe_s=(0.06, 0.06, 0.10), trim=(0.55, 0.12, 0.14), eye_h=0.17, brow=0.12, brow_tilt=0.13, lash=0.09, glint=(0.3, 1.0, 0.8))
@@ -159,3 +159,56 @@ def nalan(c, Jat, t, held=True):
     if held: sword(c, J, lw, bend=J['p'].get('bend', 0.0))
     limb(c, J['s1'], J['e1'], 0.033 * H, 0.032 * H, rb, lw, rs); panel(c, chain(lambda dt: Jat(dt)['h1'], 3, 0.045 * H, 0.03, (-0.2 * f, 0.98), t, 0.15, 5.0), 0.04 * H, 0.016 * H, rs, lw)                    # 宽袖垂下的一角
     limb(c, J['e1'], J['h1'], 0.032 * H, 0.05 * H, rb, lw, rs); hand(c, J['h1'], H, lw)
+
+# ---------- 数据驱动的通用人物：造型写成一个 dict，figure() 照着画
+def _look(**o):
+    d = dict(hair=(0.1, 0.1, 0.14), hair_hi=(0.4, 0.4, 0.5), iris=(0.2, 0.2, 0.3), robe=(0.9, 0.92, 0.96), robe_s=(0.7, 0.76, 0.86), trim=(0.4, 0.6, 0.8), leg=None, boot=(0.2, 0.2, 0.26), eye_h=0.2, brow=0.07, brow_tilt=0.06, lash=0.09,
+             cut='robe', hairdo='long', pads=None, cape=None, beard=None, ghost=False, bow=None, weapon=None, sword=((0.72, 0.97, 0.95), (0.55, 0.8, 0.82), (0.2, 0.32, 0.4)), mark=None, tw=1.0)
+    d.update(o); return d
+LOOKS = dict(
+    nalan=_look(hair=(0.96, 0.32, 0.56), hair_hi=(1.0, 0.66, 0.8), iris=(0.92, 0.2, 0.5), robe=(0.98, 0.98, 1.0), robe_s=(0.80, 0.82, 0.93), trim=(0.36, 0.22, 0.6), leg=(0.97, 0.97, 1.0), boot=(0.9, 0.9, 0.97), eye_h=0.23, brow=0.06, eye_y=0.10,
+                cut='short', skirt=((0.9, 0.2, 0.42), (0.68, 0.1, 0.3)), hairdo='twin', pads=(0.95, 0.74, 0.3), bow=(0.9, 0.2, 0.42), weapon='sword', sword=((0.96, 0.98, 1.0), (1.0, 1.0, 1.0), (0.8, 0.14, 0.2))),
+    yaolao=_look(hair=(0.96, 0.97, 1.0), hair_hi=(0.8, 0.86, 1.0), iris=(0.8, 0.1, 0.12), robe=(0.16, 0.36, 0.78), robe_s=(0.08, 0.2, 0.55), trim=(0.94, 0.96, 1.0), eye_h=0.16, brow=0.08, brow_tilt=0.1, hairdo='long', ghost=True),
+    yunyun=_look(hair=(0.86, 0.95, 0.96), hair_hi=(1, 1, 1), iris=(0.5, 0.3, 0.8), robe=(0.2, 0.4, 0.8), robe_s=(0.1, 0.24, 0.6), trim=(0.94, 0.97, 1.0), leg=(0.2, 0.38, 0.76), boot=(0.9, 0.95, 1.0), eye_h=0.21, brow=0.055, eye_y=0.10,
+                 cut='short', skirt=((0.97, 0.98, 1.0), (0.8, 0.86, 0.95)), hairdo='long', pads=(0.5, 0.88, 0.84), cape=((0.55, 0.88, 0.84), (0.36, 0.7, 0.7)), mark=(0.4, 0.8, 0.85), weapon='sword'),
+    xuner=_look(hair=(0.16, 0.10, 0.26), hair_hi=(0.45, 0.35, 0.65), iris=(0.3, 0.72, 0.74), robe=(0.97, 0.98, 0.99), robe_s=(0.8, 0.88, 0.9), trim=(0.3, 0.62, 0.6), eye_h=0.23, brow=0.055, eye_y=0.10, cut='robe', hairdo='long'),
+    xiaozhan=_look(hair=(0.1, 0.1, 0.13), iris=(0.15, 0.15, 0.2), robe=(0.36, 0.2, 0.2), robe_s=(0.22, 0.1, 0.12), trim=(0.8, 0.66, 0.36), eye_h=0.15, brow=0.11, brow_tilt=0.1, hairdo='bun', beard=(0.1, 0.1, 0.13)),
+    geye=_look(hair=(0.7, 0.72, 0.76), iris=(0.2, 0.2, 0.25), robe=(0.9, 0.93, 0.98), robe_s=(0.7, 0.78, 0.9), trim=(0.3, 0.55, 0.75), eye_h=0.13, brow=0.08, hairdo='bun', beard=(0.75, 0.77, 0.8)),
+    yunleng=_look(hair=(0.82, 0.84, 0.88), iris=(0.2, 0.2, 0.25), robe=(0.92, 0.95, 1.0), robe_s=(0.7, 0.78, 0.9), trim=(0.3, 0.55, 0.75), eye_h=0.13, brow=0.1, brow_tilt=0.14, hairdo='bun', beard=(0.85, 0.86, 0.9)),
+    yunshan=_look(hair=(0.2, 0.2, 0.24), hair_hi=(0.5, 0.5, 0.6), iris=(0.3, 0.5, 0.7), robe=(0.96, 0.97, 1.0), robe_s=(0.72, 0.8, 0.92), trim=(0.75, 0.62, 0.3), eye_h=0.15, brow=0.1, brow_tilt=0.12, hairdo='long', cape=((0.92, 0.95, 1.0), (0.7, 0.78, 0.9))),
+    hood=_look(hair=(0.03, 0.03, 0.05), iris=(0.8, 0.1, 0.1), robe=(0.05, 0.05, 0.08), robe_s=(0.02, 0.02, 0.03), trim=(0.3, 0.1, 0.14), hairdo='hood', cape=((0.05, 0.05, 0.08), (0.02, 0.02, 0.03)), skin=(0.1, 0.1, 0.13)),
+)
+def figure(c, Jat, t, K, held=True, alpha=1.0):
+    """按 K（LOOKS 里的一项）画一个人。ghost：没有腿，袍子往下收成一缕（戒指里的药老）。"""
+    if alpha < 1 or K.get('ghost'): c.push_group()
+    J = Jat(0); H = J['H']; f = J['f']; lw = 0.011 * H; rb, rs, tr = K['robe'], K['robe_s'], K['trim']; r = 0.077 * H; lg = K['leg'] or rs; cut = K['cut']; hd = K['hairdo']; gh = K['ghost']
+    pel = lambda dx, dy: (lambda dt: (Jat(dt)['pel'][0] + Jat(dt)['f'] * dx * H, Jat(dt)['pel'][1] + dy * H)); head = lambda dx, dy: (lambda dt: (Jat(dt)['head'][0] + Jat(dt)['f'] * dx * r, Jat(dt)['head'][1] + dy * r))
+    if K['cape']: panel(c, chain(lambda dt: (Jat(dt)['neck'][0] - Jat(dt)['f'] * 0.03 * H, Jat(dt)['neck'][1] + 0.02 * H), 8, 0.085 * H, 0.03, (-0.32 * f, 0.95), t, 0.12, 0.3), 0.07 * H, 0.17 * H, K['cape'][1], lw, trim=tr)
+    if hd == 'long': panel(c, chain(head(-0.5, -0.1), 9, 0.06 * H, 0.028, (-0.22 * f, 0.975), t, 0.10, 0.5), 0.055 * H, 0.03 * H, K['hair'], lw)
+    if hd == 'twin': panel(c, chain(head(-0.7, -0.7), 12, 0.07 * H, 0.03, (-0.5 * f, 0.87), t, 0.14, 0.9), 0.04 * H, 0.014 * H, K['hair'], lw)                 # 远侧的马尾
+    limb(c, J['s2'], J['e2'], 0.03 * H, 0.03 * H, rs, lw); limb(c, J['e2'], J['h2'], 0.03 * H, 0.04 * H, rs, lw); hand(c, J['h2'], H, lw)
+    if not gh:
+        limb(c, J['p2'], J['k2'], 0.044 * H, 0.035 * H, lg if cut == 'short' else rs, lw); limb(c, J['k2'], J['f2'], 0.033 * H, 0.027 * H, lg if cut == 'short' else rs, lw); limb(c, J['f2'], J['t2'], 0.025 * H, 0.018 * H, K['boot'], lw)
+    if cut == 'robe' or gh: panel(c, chain(pel(-0.03, -0.03), 7 if not gh else 9, 0.062 * H, 0.024, (-0.3 * f, 0.955), t, 0.10, 1.0), 0.055 * H, 0.12 * H if not gh else 0.012 * H, rs, lw, trim=None if gh else tr)
+    if not gh: limb(c, J['p1'], J['k1'], 0.047 * H, 0.037 * H, lg if cut == 'short' else rb, lw, None if cut == 'short' else rs); limb(c, J['k1'], J['f1'], 0.035 * H, 0.028 * H, lg if cut == 'short' else rb, lw); limb(c, J['f1'], J['t1'], 0.026 * H, 0.019 * H, K['boot'], lw)
+    if cut == 'short':                                                                  # 短裙：两片随腿摆的裙片
+        for (dx, rest, ph) in ((-0.035, (-0.5 * f, 0.87), 1.0), (0.035, (0.35 * f, 0.94), 3.0)): panel(c, chain(pel(dx, -0.03), 3, 0.055 * H, 0.02, rest, t, 0.12, ph), 0.06 * H, 0.10 * H, K['skirt'][0], lw, K['skirt'][1])
+    torso(c, J, rb, rs, lw, collar=tr, inner=K.get('inner', (0.95, 0.95, 0.97)), belt=tr, w=(0.066, 0.08, 0.052, 0.068) if cut == 'short' else (0.074, 0.088, 0.062, 0.076))
+    if cut == 'robe' and not gh: panel(c, chain(pel(0.02, -0.03), 6, 0.065 * H, 0.02, (0.08 * f, 0.996), t, 0.08, 3.0), 0.05 * H, 0.10 * H, rb, lw, rs, trim=tr)
+    if K['bow']: n = J['neck']; c.move_to(n[0] + f * 0.02 * H, n[1] + 0.03 * H); c.rel_line_to(-0.04 * H, -0.03 * H); c.rel_line_to(0, 0.06 * H); c.close_path(); c.move_to(n[0] + f * 0.02 * H, n[1] + 0.03 * H); c.rel_line_to(0.04 * H, -0.03 * H); c.rel_line_to(0, 0.06 * H); c.close_path(); _ink(c, K['bow'], lw * 0.8)
+    if K.get('skin'): c.arc(J['head'][0], J['head'][1], r * 1.02, 0, 7); _ink(c, K['skin'], lw)
+    else: limb(c, J['neck'], J['head'], 0.022 * H, 0.026 * H, SKIN_S, lw); face(c, J, K, lw)
+    if hd == 'hood':
+        r0 = _head_ctx(c, J); c.new_path(); c.move_to(0.9, -0.6); c.curve_to(0.6, -1.5, -1.3, -1.5, -1.3, 0.2); c.line_to(-1.1, 1.3); c.line_to(0.1, 1.2); c.curve_to(-0.3, 0.4, 0.2, -0.3, 0.9, -0.6); c.close_path(); _ink(c, K['robe'], lw / r0); c.arc(0.5, 0.1, 0.1, 0, 7); c.set_source_rgb(*K['iris']); c.fill(); c.restore()
+    else:
+        hair_cap(c, J, K, lw, ((0.34, -0.82, 0.40, -0.02, 0.2), (0.66, -0.84, 0.78, -0.2, 0.19), (0.9, -0.66, 1.0, -0.24, 0.1)) if not K['beard'] else ((0.5, -0.9, 0.6, -0.5, 0.2),))
+        if hd in ('long', 'twin'): panel(c, chain(head(0.05, 0.3), 5, 0.045 * H, 0.03, (0.04 * f, 1.0), t, 0.12, 4.0), 0.016 * H, 0.008 * H, K['hair'], lw * 0.8)
+        if hd == 'twin': c.arc(J['head'][0] - f * r * 0.55, J['head'][1] - r * 0.95, r * 0.3, 0, 7); _ink(c, K['hair'], lw); panel(c, chain(head(-0.55, -0.95), 12, 0.07 * H, 0.026, (-0.42 * f, 0.9), t, 0.14, 0.2), 0.05 * H, 0.016 * H, K['hair'], lw)
+        if hd == 'bun': c.arc(J['head'][0] - f * r * 0.3, J['head'][1] - r * 1.25, r * 0.36, 0, 7); _ink(c, K['hair'], lw)
+        if K['beard']: panel(c, chain(head(0.72, 0.9), 3, 0.035 * H, 0.03, (0.1 * f, 0.99), t, 0.1, 2.0), 0.03 * H, 0.006 * H, K['beard'], lw * 0.8)
+        if K['mark']: c.arc(J['head'][0] + f * r * 0.78, J['head'][1] - r * 0.42, r * 0.08, 0, 7); c.set_source_rgb(*K['mark']); c.fill()
+    if K['pads']: s1 = J['s1']; c.save(); c.translate(s1[0], s1[1] - 0.01 * H); c.scale(f, 1); c.move_to(-0.07 * H, 0.015 * H); c.curve_to(-0.06 * H, -0.05 * H, 0.04 * H, -0.05 * H, 0.06 * H, 0.0); c.curve_to(0.03 * H, 0.03 * H, -0.03 * H, 0.035 * H, -0.07 * H, 0.015 * H); c.close_path(); c.restore(); _ink(c, K['pads'], lw)
+    if held and K['weapon'] == 'sword': sword(c, J, lw, bend=J['p'].get('bend', 0.0), col=K['sword'][0], guard=K['sword'][1], hilt=K['sword'][2])
+    limb(c, J['s1'], J['e1'], 0.033 * H, 0.032 * H, rb, lw, rs); limb(c, J['e1'], J['h1'], 0.032 * H, 0.046 * H, rb, lw, rs); hand(c, J['h1'], H, lw)
+    if alpha < 1 or gh: c.pop_group_to_source(); c.paint_with_alpha(alpha * (0.82 if gh else 1.0))
+def nalan(c, Jat, t, held=True): figure(c, Jat, t, LOOKS['nalan'], held)
