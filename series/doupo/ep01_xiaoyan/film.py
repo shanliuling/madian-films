@@ -125,7 +125,46 @@ def s_stele(t):
     fr = slam(fr, t, 14, 16, '萧炎', (960, 430), px=330, glow=(255, 150, 40), big=2.2); fr = cap(fr, t, 14.3, 16, '上 · 莫欺少年穷', y=700, px=64, col=(255, 226, 170))
     fr = cap(fr, t, 5, 8, '「萧炎，斗之力，三段！级别：低级！」'); fr = cap(fr, t, 16.3, 20, '三年前'); fr = cap(fr, t, 20, 24, '他是萧家百年之内，最年轻的斗者'); fr = cap(fr, t, 24.3, 27.8, '一夜之间，斗之气旋化为乌有'); return cap(fr, t, 29.8, 32, '「萧炎哥哥。」')
 
-SHOTS = [(0, 4, s_hook), (4, 32, s_stele)]
+# ================= 32–64 萧家大厅：退婚、莫欺少年穷、休证
+_st = dict(lean=4, head=0, a1=(4, 12), a2=(-4, 6), l1=(8, 0), l2=(-8, -4))
+_xh = Act('xiaoyan', [(0, P(x=640, **dict(_st, lean=8, head=18, eye=0.6))), (bt(43.6), P(x=640, **dict(_st, lean=8, head=18, eye=0.6))), (bt(44.6), P(x=660, **dict(_st, lean=0, head=-4, a1=(10, 60), a2=(-10, 30))), 'o'), (bt(47.7), P(x=664, **dict(_st, lean=-6, head=-6, a1=(-20, 40), a2=(-10, 30)))),
+                      (bt(48), P(x=700, lean=14, head=-10, a1=(90, 94), a2=(-30, -50), l1=(34, 4), l2=(-26, -34), mouth=1), 'snap'), (bt(55), P(x=704, lean=10, head=-8, a1=(60, 96), a2=(-20, -30), l1=(30, 4), l2=(-24, -30), mouth=0)),
+                      (bt(62), P(x=900, **_st), 'io'), (bt(63), P(x=940, lean=30, head=30, a1=(30, 60), a2=(20, 50), l1=(20, -80), l2=(10, -85)), 'o'), (bt(64), P(x=940, lean=42, head=40, a1=(30, 60), a2=(20, 50), l1=(20, -80), l2=(10, -85)))], H=YOUNG, held=False)
+_nh = Act('nalan', [(0, P(x=1060, face=-1, **_st)), (bt(38), P(x=1060, face=-1, **_st)), (bt(38.6), P(x=1040, face=-1, lean=8, head=-4, a1=(88, 92), a2=(-20, -40), l1=(20, 0), l2=(-16, -20), mouth=1), 'snap'), (bt(44), P(x=1040, face=-1, lean=8, head=-4, a1=(88, 92), a2=(-20, -40), l1=(20, 0), l2=(-16, -20))),
+                    (bt(48.2), P(x=1070, face=-1, lean=-10, head=6, a1=(30, 100), a2=(-10, 20), l1=(4, 0), l2=(-20, -10)), 'snap'), (bt(52), P(x=1070, face=-1, lean=-6, head=4, a1=(30, 100), a2=(-10, 20), l1=(4, 0), l2=(-20, -10))), (bt(52.5), P(x=1050, face=-1, lean=10, head=-6, a1=(92, 96), a2=(-30, -50), l1=(22, 0), l2=(-16, -20), mouth=1), 'snap'), (bt(64), P(x=1050, face=-1, lean=4, head=0, a1=(10, 40), a2=(-10, 10), l1=(10, 0), l2=(-10, -6)))], H=250, held=False)
+_gh = Act('geye', [(0, P(x=1250, face=-1, **dict(_st, a1=(40, 100)))), (bt(64), P(x=1250, face=-1, **dict(_st, a1=(46, 104))))], H=300)
+_fh = Act('xiaozhan', [(0, P(x=1650, face=-1, **_st)), (bt(49.6), P(x=1650, face=-1, **_st)), (bt(50), P(x=1600, face=-1, lean=16, head=-6, a1=(60, 30), a2=(-10, 10), l1=(20, 0), l2=(-14, -10), mouth=1), 'snap'), (bt(64), P(x=1610, face=-1, lean=6, head=0, a1=(20, 40), a2=(-10, 10), l1=(12, 0), l2=(-10, -6)))], H=320)
+_ch = camk([(bt(32), (1100, 560, 0.98, 0)), (bt(37.5), (1120, 580, 1.08, 0), 'lin'), (bt(38.4), (1100, 650, 1.75, 2), 'snap'), (bt(43.8), (1080, 650, 1.9, 2), 'lin'), (bt(44.5), (690, 650, 2.0, -2), 'snap'), (bt(47.8), (690, 640, 2.3, -3), 'lin'), (bt(48), (760, 640, 2.0, -6), 'snap'), (bt(49.8), (790, 640, 1.8, -4), 'lin'),
+             (bt(50), (1540, 620, 1.7, 3), 'hold'), (bt(52), (1520, 620, 1.8, 3), 'lin'), (bt(52.05), (1040, 650, 1.9, -3), 'hold'), (bt(56), (1020, 650, 2.1, -3), 'lin'), (bt(62), (1180, 600, 1.15, 0), 'hold'), (bt(64), (1200, 610, 1.3, 0), 'lin')], [(bt(48), 26, 0.25), (bt(50), 14, 0.15), (bt(38.5), 8, 0.1), (bt(52.5), 8, 0.1)])
+def s_hall(t):
+    b = (t - 0.5) / BEAT
+    if 56 <= b < 62: return s_palm(t)
+    gp = _gh.J(t)['h1']
+    def glow(c):
+        if 35 <= b < 44: A.burst(c, (gp[0] - 20, gp[1] - 10), 60 + 10 * math.sin(t * 8), (0.6, 1.0, 0.6), min(1.0, (b - 35) * 2) * 0.9, rays=8, t=t, seed=3)
+    acts = [_fh, _gh, _nh, _xh]; fr, mask, gl, M = A.render(R, PL('hall'), _ch(t), [('over', lambda c: shadow(c, acts, t)), ('chars', lambda c: [a.draw(c, t) for a in acts]), ('glow', glow)])
+    fr = hits(fr, t, mask, gl, M, [(bt(48), (760, 600), (1, 1, 2, 2, 3))]); fr = fin(fr)
+    if 48 <= b < 50: fr = A.focuslines(fr, t, R, (R.w * 0.38, R.h * 0.5), a=0.7, n=70, r0=0.46)
+    fr = cap(fr, t, 32.3, 36, '萧家大厅', y=80, px=58, col=(255, 226, 170)); fr = cap(fr, t, 34.5, 38.3, '云岚宗送来一枚聚气散，当作退婚的赔礼'); fr = cap(fr, t, 39, 43.8, '「现在的你，就是一个废物！」'); fr = cap(fr, t, 44.6, 47.9, '「三十年河东，三十年河西——」')
+    fr = slam(fr, t, 48, 50, '莫欺少年穷', (1180, 420), px=250, glow=(255, 120, 40), big=3.0, rot=-5); fr = cap(fr, t, 50.1, 52, '「好一句莫欺少年穷！我萧战的儿子，就是不凡！」'); fr = cap(fr, t, 52.6, 56, '「三年之后，我在云岚宗等你！」'); return cap(fr, t, 62.2, 64, '他转身，向父亲跪下')
+def s_palm(t):
+    """▲俯拍：一只带血的手按在纸上。"""
+    b = (t - 0.5) / BEAT; s, c = layer(R.w, R.h); c.scale(R.k, R.k); u = min(1.0, (b - 56) / 0.12); sh = A.shake(t, [(bt(56), 30, 0.2)], FPS); c.translate(960 + sh[0], 540 + sh[1]); z = 1.25 - 0.1 * min(1, (b - 56) / 6); c.scale(z, z); c.rotate(-0.12)
+    g = cairo.LinearGradient(-1200, 0, 1200, 0); g.add_color_stop_rgb(0, 0.30, 0.15, 0.10); g.add_color_stop_rgb(1, 0.16, 0.08, 0.06); c.set_source(g); c.paint()
+    c.rectangle(-330, -430, 660, 860); c.set_source_rgb(0.96, 0.94, 0.88); c.fill()
+    for i in range(7):                                                                    # 几行墨字
+        c.set_source_rgba(0.08, 0.08, 0.1, 0.85); c.set_line_width(9); x = 250 - i * 62
+        for j in range(9): y = -370 + j * 46; c.move_to(x - 14 + 8 * rnd(i, j), y); c.line_to(x + 12 * rnd(j, i), y + 26); c.stroke()
+    if u > 0:
+        c.set_source_rgba(0.72, 0.03, 0.05, 0.95); c.save(); c.translate(-120, 190); c.arc(0, 30, 78, 0, 7); c.fill()
+        for i, (ax, ln) in enumerate(((-66, 110), (-30, 150), (8, 160), (44, 140))): c.save(); c.translate(ax, -30); c.rotate((i - 1.5) * 0.12); c.rectangle(-17, -ln, 34, ln); c.arc(0, -ln, 17, 0, 7); c.fill(); c.restore()
+        c.save(); c.translate(86, 30); c.rotate(1.0); c.rectangle(-19, -100, 38, 100); c.arc(0, -100, 19, 0, 7); c.fill(); c.restore(); c.restore()
+        for i in range(26): th = rnd(i, 3) * 6.283; d = 120 + 260 * rnd(i, 4) * u; c.arc(-120 + math.cos(th) * d, 190 + math.sin(th) * d, 3 + 9 * rnd(i, 5), 0, 7); c.fill()
+    rgb, al = rgba(s); fr = rgb.copy(); n = int(round((t - bt(56)) * 60))
+    if 0 <= n < 4: fr = (1 - fr) if n < 2 else fr + (1 - fr) * 0.6
+    fr = fin(fr); return cap(fr, t, 57, 62, '「这不是解除婚约的契约，是把你逐出萧家的休证！」')
+
+SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall)]
 def frame(t):
     b = (t - 0.5) / BEAT
     for (b0, b1, fn) in SHOTS:
