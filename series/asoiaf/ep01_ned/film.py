@@ -1,6 +1,6 @@
 """film — 冰火人物志 01《奈德·史塔克：最重荣誉的人，为什么第一个死》总时间线（逐帧动画，30fps）。
-python film.py strip 小节...        抽这些小节处的画面拼成 out/_strip.jpg
-python film.py clip 秒0 秒1         渲染一小段，配 out/mix.wav → out/clip_{高}p.mp4
+python film.py strip 小节...        抽这些小节处的画面拼成 out/_strip.jpg（小节是 RETIME 表左边那一列的旧小节）
+python film.py clip 秒0 秒1         渲染成片的第 秒0–秒1 秒，配 out/mix.wav → out/clip_{高}p.mp4
 python film.py full [并行数]        整片：先跑 mix.py，分段并行渲染，拼接配音 → out/ned_{高}p.mp4
 python film.py seg i n              只渲染第 i/n 段（无声）→ out/_seg{高}_{i}.mp4
 分辨率：默认 960×540；环境变量 RES=1080 出 1920×1080。
@@ -132,7 +132,7 @@ BLACK = np.zeros((1080, 1920, 3), np.float32) + np.float32((0.006, 0.008, 0.012)
 SETS = dict(north=set_north, swordc=set_sword_cold, trident=set_trident, tower=set_tower, bed=set_bed, baby=set_babyhand, snow=set_snow, black=lambda: plate_scene(BLACK),
             wtitle=lambda: plate_scene(winwall('title')), w1=lambda: plate_scene(winwall('baby')), w2=lambda: plate_scene(winwall('wood')), w3=lambda: plate_scene(winwall('night')))
 # ============ 地图（series/asoiaf/westeros.py：羊皮纸沙盘，被提灯照亮）
-import westeros as wmap3
+import westeros as wmap3, heraldry as HR
 TEXC = {}
 def tex():
     if 't' not in TEXC: TEXC['t'] = wmap3.texture()
@@ -154,23 +154,41 @@ def P3(pts): return [wmap3.XY(p) for p in pts]
 def marrow(ov, proj, path, p, col, th=6):
     q = wmap3.smoothline(P3(path), 14); hd, i = along(q, p); pts = [proj(v) for v in q[:i + 1]] + [proj(hd)]; ov.line(pts, col, th)
     (x1, y1) = pts[-1]; (x0, y0) = proj(q[max(0, i - 2)]); d = math.hypot(x1 - x0, y1 - y0) or 1; ux, uy = (x1 - x0) / d, (y1 - y0) / d; L = 34 * R.k; ov.poly([(x1 + ux * L, y1 + uy * L), (x1 - uy * L * 0.6, y1 + ux * L * 0.6), (x1 + uy * L * 0.6, y1 - ux * L * 0.6)], col)
-HOUSES = [([(362, 470), (352, 600), (345, 720), (372, 820), (420, 905)], (235, 238, 245)), ([(527, 876), (470, 890), (420, 905)], (120, 170, 235)), ([(313, 940), (370, 925), (420, 905)], (215, 70, 55)), ([(580, 1213), (500, 1120), (440, 1000), (420, 905)], (240, 190, 50))]
+HOUSES = [('stark', [(362, 470), (352, 600), (345, 720), (372, 820), (396, 862)], (235, 238, 245)), ('arryn', [(527, 876), (495, 884), (468, 891)], (120, 170, 235)), ('tully', [(313, 940), (345, 932), (372, 924)], (215, 70, 55)), ('baratheon', [(580, 1213), (500, 1120), (440, 1000), (430, 952)], (240, 190, 50))]   # 各自停在三叉戟河外一圈，旗不叠在一起
+def flags(fr, items, t):
+    """items: (家族, 屏幕 x, y, 旗高, 升旗进度[, 王冠])，按远近排好再画。"""
+    for it in sorted(items, key=lambda it: it[2]): HR.flag(fr, it[0], it[1], it[2], it[3] * R.k, t, it[4], *it[5:])
+    return fr
 def map1(tl, d, t):
-    lb = tl / B; c = wmap3.XY((440, 850)); tr = wmap3.XY('trident'); fr, proj = wmap3.pview(tex(), c[0], c[1] - 30 * lb, 3500 - 120 * lb, 0.35, R, lamp=(tr[0], tr[1], 1700), dark=0.35); ov = Ov()
+    """四家起兵：四面旗各自升起，沿路压向三叉戟河，身后拖一条家族色的线。"""
+    lb = tl / B; c = wmap3.XY((440, 812)); tr = wmap3.XY('trident'); fr, proj = wmap3.pview(tex(), c[0], c[1] - 20 * lb, 3900 - 160 * lb, 0.35, R, lamp=(tr[0], tr[1], 1800), dark=0.35); ov = Ov(); fl = []
     kl = proj(wmap3.XY('kl')); q = (tl * 1.6) % 1.0; ov.ring(kl, 12 + 50 * q, (215, 40, 30), 4, 1 - q); ov.dot(kl, 8, (215, 40, 30))
-    for i, (path, col) in enumerate(HOUSES):
-        p = (lb - 0.6 - i * 0.25) / 1.0
-        if p > 0: marrow(ov, proj, path, min(1, p), col)
-    return ov.apply(fr, 0.25)
+    for i, (h, path, col) in enumerate(HOUSES):
+        p = ease((lb - 0.6 - i * 0.25) / 1.1); ln = wmap3.smoothline(P3(path), 14); hd, k = along(ln, p)
+        if p > 0: ov.line([proj(v) for v in ln[:k + 1]] + [proj(hd)], col, 4)
+        x, y = proj(hd); fl.append((h, x, y - (4 * R.k * abs(math.sin(t * 9 + i)) if 0 < p < 1 else 0), 128, (lb - 0.1 - i * 0.12) / 0.3))
+    return flags(ov.apply(fr, 0.25), fl, t)
 def along(q, p):
     x = min(len(q) - 1.0001, max(0.0, p * (len(q) - 1))); i = int(x); return q[i] + (q[i + 1] - q[i]) * (x - i), i
 def trail(fr, proj, path, p, t):
     q = wmap3.smoothline(P3(path), 16); hd, i = along(q, p); ov = Ov(); ov.line([proj(v) for v in q[:i + 1]] + [proj(hd)], (150, 30, 20), 5); fr = ov.apply(fr); g = np.zeros((R.h, R.w, 3), np.uint8)
     fl = 0.85 + 0.15 * math.sin(t * 17); x, y = proj(hd); cv2.circle(g, (int(x), int(y)), int(10 * R.k * 2), tuple(int(v * fl) for v in (255, 215, 130)), -1, cv2.LINE_AA); return glowov(fr, g, 2.2), hd
-def follow(path, span, tilt):
+def follow(path, span, tilt, house=None):
     def f(tl, d, t):
-        p = ease(tl / (d - 0.5)); q = wmap3.smoothline(P3(path), 16); c, _ = along(q, p); fr, proj = wmap3.pview(tex(), c[0], c[1] - span * 0.06, span, tilt, R, lamp=(c[0], c[1], span * 0.40), dark=0.22); return trail(fr, proj, path, p, t)[0]
+        p = ease(tl / (d - 0.5)); q = wmap3.smoothline(P3(path), 16); c, _ = along(q, p); fr, proj = wmap3.pview(tex(), c[0], c[1] - span * 0.06, span, tilt, R, lamp=(c[0], c[1], span * 0.40), dark=0.22); fr, hd = trail(fr, proj, path, p, t)
+        if house: x, y = proj(hd); flags(fr, [(house, x, y - 3 * R.k * abs(math.sin(t * 9)), 150, tl / 0.3)], t)
+        return fr
     return f
+def map3(tl, d, t):
+    """国王北上：宝冠雄鹿旗从君临一路走到临冬城；然后狼旗升起，跟着它南下。"""
+    lb = tl / B; road = wmap3.KINGSROAD[2:]; q = wmap3.smoothline(P3(road), 16); ua = ease(lb / 1.2); ub = ease((lb - 1.45) / (d / B - 1.45 - 0.3))
+    c, _ = along(q, 0.42 * (1 - ua) + ub); span = 3300 - 1150 * ua - 250 * ub; fr, proj = wmap3.pview(tex(), c[0], c[1] - span * 0.06, span, 0.5, R, lamp=(c[0], c[1], span * 0.42), dark=0.22)
+    ov = Ov(); gq = q[::-1]; hd, k = along(gq, ua); ov.line([proj(v) for v in gq[:k + 1]] + [proj(hd)], (200, 160, 60), 3); fr = ov.apply(fr); bob = 3 * R.k * abs(math.sin(t * 9))
+    lead = 0.15 * ease((lb - 1.2) / 0.5)     # 鹿旗先掉头往南走出一段，狼旗升起后跟上
+    if ub > 0: fr, _ = trail(fr, proj, road, ub, t)
+    x, y = proj(along(q, min(1.0, ub + lead))[0]) if ua >= 1 else proj(hd); fl = [('baratheon', x, y - (bob if ua < 1 or lead > 0 else 0), 150, 1.0, True)]
+    if lb > 1.2: x, y = proj(along(q, ub)[0]); fl.append(('stark', x, y - (bob if ub > 0 else 0), 150, (lb - 1.2) / 0.25))
+    return flags(fr, fl, t)
 def gopen(tl, d, t):
     """冷开场：三联彩窗中间一扇。0–1 小节推近；1 小节剑落、裂、碎；1.6–2 小节碎片倒飞拼回。"""
     P = BA.PLT; b = tl / B
@@ -191,7 +209,7 @@ def gopen(tl, d, t):
     fr = fr * P['og']                                                                     # 底部压暗，托住金字
     if 1.6 <= b < 2.0: v = ((b - 1.6) / 0.4) ** 2; ks = int(60 * v * R.k * 2) | 1; fr = cv2.blur(fr, (1, ks)) if ks > 1 else fr                  # 倒带越来越快：竖向拖影
     return fr
-MAPS = dict(gopen=gopen, map1=map1, map2=follow([(462, 1108), (430, 1180), (380, 1260), (340, 1325)], 1500, 0.5), map3=follow(wmap3.KINGSROAD[2:], 1900, 0.5))
+MAPS = dict(gopen=gopen, map1=map1, map2=follow([(462, 1108), (430, 1180), (380, 1260), (340, 1325)], 1500, 0.5, 'stark'), map3=map3)
 def kidcam(i, h): return lambda tl: (1560 + i * 250 - 700 * tl / B - 20, 930 - h * 0.86, 2.7)
 # ============ 时间线
 SHOTS = [(0, 2.0, 'gopen', None, 0),                                                    # 冷开场：彩窗中间一扇推近 → 剑落炸碎 → 碎片倒飞拼回
@@ -346,14 +364,12 @@ def four2(n):
         wins.append((g, m, 96 + i * 436, 90))
     return glass.wall(wins)[0].astype(np.float32)
 NORTH = ['winterfell', 'whiteharbor', (250, 520), (480, 400), (300, 360), (520, 480), (330, 640), 'castleblack']
-KINGS = [('riverrun', (235, 238, 245)), ('kl', (215, 60, 45)), ('dragonstone', (235, 140, 50)), ('storm', (240, 195, 60)), ('pyke', (120, 130, 150))]
+KINGS = [('riverrun', 'stark'), ('kl', 'joffrey'), ('dragonstone', 'stannis'), ('storm', 'baratheon'), ('pyke', 'greyjoy')]
 def map4(tl, d, t):
-    lb = tl / B; c0 = wmap3.XY('winterfell'); c1 = wmap3.XY((430, 900)); u = ease(lb / 3.2); cx, cy = c0[0] + (c1[0] - c0[0]) * u, c0[1] + (c1[1] - c0[1]) * u; fr, proj = wmap3.pview(tex(), cx, cy, 2300 + 1500 * u, 0.35, R, lamp=(cx, cy, 1100 + 900 * u), dark=0.30); ov = Ov()
-    for i, p in enumerate(NORTH):
-        if lb > i * 0.2: ov.dot(proj(wmap3.XY(p)), 9 if i else 13, tuple(int(v * (0.85 + 0.15 * math.sin(t * 13 + i))) for v in (240, 245, 255)))
-    for i, (p, col) in enumerate(KINGS):
-        if lb > 2 + i * 0.25: x, y = proj(wmap3.XY(p)); s = 20 * R.k * 2 * (1 + 0.5 * max(0, 1 - (lb - 2 - i * 0.25) / 0.2)); ov.poly([(x - s, y + s * 0.6), (x - s, y - s * 0.5), (x - s * 0.5, y), (x, y - s * 0.8), (x + s * 0.5, y), (x + s, y - s * 0.5), (x + s, y + s * 0.6)], col)
-    return ov.apply(fr, 0.3)
+    lb = tl / B; c0 = wmap3.XY('winterfell'); c1 = wmap3.XY((430, 900)); u = ease(lb / 3.2); cx, cy = c0[0] + (c1[0] - c0[0]) * u, c0[1] + (c1[1] - c0[1]) * u; fr, proj = wmap3.pview(tex(), cx, cy, 2300 + 1500 * u, 0.35, R, lamp=(cx, cy, 1100 + 900 * u), dark=0.30)
+    fl = [('stark', *proj(wmap3.XY(p)), 96 if i else 130, (lb - i * 0.2) / 0.3) for i, p in enumerate(NORTH) if lb > i * 0.2]
+    fl += [(h, *proj(wmap3.XY(p)), 150, (lb - 2 - i * 0.25) / 0.25, True) for i, (p, h) in enumerate(KINGS) if lb > 2 + i * 0.25]
+    return flags(fr, fl, t)
 EC = {}
 def endcard(tl, d, t):
     import endcard as brandfig
@@ -424,7 +440,7 @@ T(34, 36, 'sub', '几天后，国王打猎重伤，没能撑过去。'); T(36, 3
 T(40.5, 42, 'tag', '— 君临 · 王座厅', 960, 76, 36, 'm'); T(40.5, 42, 'sub', '第二天，他带着国王的遗诏，走进王座厅。'); T(42, 43.5, 'sub', '王后把它撕了。'); T(43.5, 45, G, '守卫的长矛，调转方向。', 960, 140)
 T(45.25, 47, G, '「我警告过你，', 1260, 640, 62, 'l'); T(45.75, 47, G, '别相信我。」', 1300, 740, 62, 'l'); T(47, 48.5, 'sub', '黑牢里，有人开了价：认罪，女儿活。'); T(48.6, 50, G, '这一次，', 1150, 700, 70, 'l'); T(49, 50, G, '他连荣誉也放下了。', 1150, 810, 70, 'l')
 T(63.2, 65, 'sub', '他这辈子，撒过两个大谎。', y=900); T(65, 66, 'sub', '一个，救了妹妹的孩子。', y=900); T(66, 67, 'sub', '一个，想救自己的女儿。', y=900); T(67, 70, G, '他不是不懂游戏，', 960, 850, 66); T(68, 70, G, '只是每一次，都不肯拿孩子下注。', 960, 950, 66)
-T(70, 72, 'sub', '他死后，北境举旗。'); T(72, 74, G, '五个国王，', 1330, 430, 70, 'l'); T(72.5, 74, G, '开始抢一把椅子。', 1330, 540, 70, 'l'); T(74.25, 76, 'brand', '码点小人', 1260, 440, 120); T(74.75, 76, 'keep', '长夜黑暗，我替你提灯。', 1260, 610, 50)
+T(70, 72, 'sub', '他死后，北境举旗。'); T(72, 74, G, '五个国王，', 1330, 300, 70, 'l'); T(72.5, 74, G, '开始抢一把椅子。', 1330, 410, 70, 'l'); T(74.25, 76, 'brand', '码点小人', 1260, 440, 120); T(74.75, 76, 'keep', '长夜黑暗，我替你提灯。', 1260, 610, 50)
 FLASH += [(bt(27.5), 0.6), (bt(28), 0.4), (bt(32), 0.5), (bt(38.5), 0.5), (bt(42.75), 0.4), (bt(45), 0.6), (bt(28.25), 0.3), (bt(28.5), 0.3), (bt(28.75), 0.3), (bt(49), 0.8), (bt(49.25), 0.5), (bt(63), 0.3)]; SHAKE += [(bt(45), 16, 0.4)]
 SCN = {}; VG = {}
 def scene(k):
@@ -451,6 +467,20 @@ def frame(t):
     fr = fr * VG['v']; TT.draw(fr, t, R); fr = fr + VG['g'][int(t * 30) % 6]
     if t > DUR - 0.8: fr = fr * max(0, (DUR - t) / 0.8)
     return (np.clip(fr, 0, 1) * 255).astype(np.uint8)
+# ---- 卡 BGM：这一集最初是按另一首曲子（一小节 1.6056 秒）做的，上面所有的「小节」都是那首曲子的小节。换成系列 BGM 后没有重写各场景，
+#      只用下面这张表把每个旧小节摆到系列 BGM 的拍子上（切点落在拍或半拍，重点落在重拍和段落起点）。新的一集直接按系列 BGM 的拍子写，不需要这张表。
+BEAT, PH = 0.59413, 0.50                                                                # 系列 BGM 的拍长；第 0 拍在曲子的 0.50 秒
+def nt(n): return PH + n * BEAT
+RETIME = [(1.0, 4), (1.6, 5.5), (2.0, 7), (2.25, 8), (2.5, 9), (2.75, 10), (3.0, 11), (3.5, 12.5), (4, 14),                # 剑落在第 4 拍（2.88 秒），片名在第 14 拍
+          (6, 20), (8.5, 27), (9.0, 28), (11, 33), (12.5, 36.5), (14, 40.5), (16, 45.5), (17, 48), (20, 55.5), (21, 58),
+          (23, 64), (26, 74), (28, 80),                                                 # 64–80 拍音乐没有鼓：国王北上、族谱；80 拍重鼓进：孩子的真相
+          (28.25, 81), (28.5, 82), (28.75, 83), (29, 84), (30, 86.5), (32, 92), (34, 98),   # 96–98 两拍空白留给「第二次选择」的最后一行
+          (36, 103), (37.5, 106.5), (38.5, 109), (40.5, 114), (42, 117.5), (42.75, 119), (43.5, 121), (45, 124), (47, 129), (48.5, 132.5), (49, 134), (49.25, 134.5), (50, 137),
+          (52, 142), (53.5, 145.5), (54.5, 148), (55.5, 151), (56.45, 153), (57, 154.5), (58, 157), (59, 159.5), (60, 162), (61.5, 166),   # 剑落在 166 拍：音乐的鼓和高频正好退掉
+          (63, 170), (63.5, 171.5), (64, 173), (64.5, 174.5), (65, 176), (66, 178.5), (67, 181), (70, 188), (72, 193), (74, 198), (76, 206)]   # 193 拍鼓回来：五个国王；198 拍片尾
+_WX = [0.0] + [nt(n) for _, n in RETIME]; _WB = [0.0] + [b for b, _ in RETIME]
+DUR2 = _WX[-1]
+def frame2(tau): return frame(bt(float(np.interp(tau, _WX, _WB))))                    # 成片第 tau 秒的画面
 def _enc(out, extra=()): return subprocess.Popen(['ffmpeg', '-y', '-v', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{R.w}x{R.h}', '-r', '30', '-i', '-', *extra, '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', out], stdin=subprocess.PIPE)
 if __name__ == '__main__':
     from PIL import Image
@@ -460,16 +490,15 @@ if __name__ == '__main__':
         while len(ims) % 6: ims.append(np.zeros_like(ims[0]))
         Image.fromarray(np.vstack([np.hstack(ims[i:i + 6]) for i in range(0, len(ims), 6)])).save('out/_strip.jpg', quality=85); print('out/_strip.jpg')
     elif cmd == 'seg':
-        i, k = int(sys.argv[2]), int(sys.argv[3]); n = int(DUR * 30); f0, f1 = n * i // k, n * (i + 1) // k; p = _enc(f'out/_seg{R.h}_{i:02d}.mp4')
+        i, k = int(sys.argv[2]), int(sys.argv[3]); n = int(DUR2 * 30); f0, f1 = n * i // k, n * (i + 1) // k; p = _enc(f'out/_seg{R.h}_{i:02d}.mp4')
         for j in range(f0, f1):
-            p.stdin.write(frame(j / 30).tobytes())
+            p.stdin.write(frame2(j / 30).tobytes())
             if (j - f0) % 100 == 0: print(i, j - f0, f1 - f0, flush=True)
         p.stdin.close(); p.wait(); print('done', i)
     elif cmd == 'clip':
-        t0, t1 = float(sys.argv[2]), float(sys.argv[3]); out = f'out/clip_{R.h}p.mp4'
-        if not os.path.exists('out/mix.wav'): subprocess.run([sys.executable, 'mix.py'], check=True)
+        t0, t1 = float(sys.argv[2]), float(sys.argv[3]); out = f'out/clip_{R.h}p.mp4'; subprocess.run([sys.executable, 'mix.py'], check=True)
         p = _enc(out, ('-ss', str(t0), '-t', str(t1 - t0), '-i', 'out/mix.wav', '-c:a', 'aac', '-b:a', '192k', '-shortest'))
-        for j in range(int(t0 * 30), int(t1 * 30)): p.stdin.write(frame(j / 30).tobytes())
+        for j in range(int(t0 * 30), int(t1 * 30)): p.stdin.write(frame2(j / 30).tobytes())
         p.stdin.close(); p.wait(); print('done', out)
     elif cmd == 'full':
         k = int(sys.argv[2]) if len(sys.argv) > 2 else max(1, (os.cpu_count() or 2) - 1); out = f'out/ned_{R.h}p.mp4'

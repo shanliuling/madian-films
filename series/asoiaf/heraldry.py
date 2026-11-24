@@ -16,6 +16,8 @@ HOUSES = dict(
     bolton=dict(zh='波顿', motto='吾刃锋利', main='#D99AA5', sub='#8C1C1C', field='#D99AA5', ink='#A01A1A', acc='#5E1012'),
     frey=dict(zh='佛雷', motto='', main='#A9AEB5', sub='#2B4C7E', field='#B4B9C0', ink='#2B4C7E', acc='#B4B9C0'),
     stannis=dict(zh='史坦尼斯', motto='', main='#E3B92F', sub='#B3261E', field='#E6BE34', ink='#15130F', acc='#C22A1C'),
+    greyjoy=dict(zh='葛雷乔伊', motto='强取胜于苦耕', main='#15130F', sub='#E0B43C', field='#15130F', ink='#E0B43C', acc='#15130F'),
+    joffrey=dict(zh='乔佛里', motto='', main='#9B1B1E', sub='#D9A441', field='#E0B43C', ink='#15130F', acc='#9B1B1E'),
     baelish=dict(zh='贝里席', motto='', main='#2E5D45', sub='#C9CED4', field='#254E3A', ink='#CFD4D9', acc='#8E969E'),
 )
 LEAD = np.float32((0.035, 0.03, 0.035))
@@ -200,7 +202,27 @@ def _mock(c, P):                                    # 贝里席：银色仿声�
     _tube(c, [(-.62, .56), (-.10, .50), (.46, .58)], [.03, .035, .02])
     _src(c, P['acc']); _poly(c, [(-.20, -.12), (.02, -.14), (.30, .04), (.46, .20), (.12, .14), (-.10, .06)])
     _src(c, P['field']); _blob(c, -.38, -.37, .028, .028)
-DRAW = dict(stark=(_wolf, None), lannister=(_lion, None), baratheon=(_stag, None), tully=(_trout, _trout_field), arryn=(_falcon, None), bolton=(_flayed, None), frey=(_towers, None), stannis=(_heart, None), baelish=(_mock, None))
+def _kraken(c, P):                                  # 葛雷乔伊：金色海怪（尖头朝上，触手向两边卷开）
+    c.save(); c.translate(0, -.02); _src(c, P['ink'])
+    for sx in (-1, 1):
+        for pts, r in (([(.10, .02), (.44, -.04), (.70, -.28), (.64, -.56), (.44, -.56), (.44, -.40)], [.085, .075, .06, .045, .032, .018]),
+                       ([(.12, .14), (.50, .18), (.80, .08), (.88, -.12), (.74, -.18), (.70, -.06)], [.085, .07, .055, .04, .028, .016]),
+                       ([(.12, .22), (.42, .44), (.70, .52), (.84, .36), (.72, .26), (.64, .36)], [.085, .07, .055, .04, .028, .016]),
+                       ([(.08, .26), (.22, .58), (.44, .82), (.62, .76), (.58, .60), (.48, .66)], [.08, .065, .05, .038, .027, .015]),
+                       ([(.03, .28), (.05, .60), (.14, .86), (.28, .94), (.32, .84)], [.07, .055, .04, .028, .015])):
+            _tube(c, [(sx * x, y) for (x, y) in pts], r)
+        _poly(c, [(sx * .14, -.52), (sx * .40, -.62), (sx * .17, -.76)])
+    _cs(c, [(0, -.98, 1), (.13, -.74), (.21, -.44), (.25, -.10), (.22, .16), (.10, .30), (0, .33), (-.10, .30), (-.22, .16), (-.25, -.10), (-.21, -.44), (-.13, -.74)])
+    _src(c, P['field'])
+    for sx in (-1, 1): _blob(c, sx * .105, .06, .05, .062); _line(c, [(sx * .06, -.60), (sx * .10, -.36), (sx * .12, -.16)], .016)
+    _src(c, P['ink'])
+    for sx in (-1, 1): _blob(c, sx * .105, .07, .02, .034)
+    c.restore()
+def _joff_field(c, P): _src(c, P['acc']); c.rectangle(0, -1.3, 1.3, 2.6); c.fill()
+def _joff(c, P):                                    # 乔佛里：左半金底黑鹿、右半红底金狮，面对面
+    c.save(); c.translate(-.34, 0); c.scale(-.50, .50); _stag(c, HOUSES['baratheon']); c.restore()
+    c.save(); c.translate(.33, 0); c.scale(.50, .50); _lion(c, HOUSES['lannister']); c.restore()
+DRAW = dict(greyjoy=(_kraken, None), joffrey=(_joff, _joff_field), stark=(_wolf, None), lannister=(_lion, None), baratheon=(_stag, None), tully=(_trout, _trout_field), arryn=(_falcon, None), bolton=(_flayed, None), frey=(_towers, None), stannis=(_heart, None), baelish=(_mock, None))
 # ---------------- 出图
 def _outline(c, shape):
     if shape == 'round': c.arc(0, 0, .96, 0, math.tau)
@@ -255,6 +277,17 @@ def put(fr, rgb, a, x, y, k=1.0):
     h, w = rgb.shape[:2]; x0, y0 = int(x - w / 2), int(y - h / 2); xa, ya, xb, yb = max(0, x0), max(0, y0), min(fr.shape[1], x0 + w), min(fr.shape[0], y0 + h)
     if xa >= xb or ya >= yb: return
     sl = (slice(ya - y0, yb - y0), slice(xa - x0, xb - x0)); reg = fr[ya:yb, xa:xb]; reg *= (1 - a[sl] * k); reg += rgb[sl] * k
+def flag(fr, name, x, y, h, t, grow=1.0, crown=False):
+    """地图上的一面家徽旗：(x, y) 是旗杆脚的像素坐标，h 是旗面高（像素），grow 0→1 是升旗；crown=True 在杆顶加一顶王冠。"""
+    if grow <= 0: return
+    g = min(1.0, grow); g = 1 - (1 - g) ** 2; h = max(10.0, h); px = max(10, int(h * (0.55 + 0.45 * g))); yt = y - 1.28 * h * g; w = max(1, int(round(h * 0.045))); dk = (0.10, 0.07, 0.05)
+    rgb, a = sigil(name, px, 'banner'); rgb, a = wave(rgb, a, t + x * 0.013, amp=0.028)
+    cv2.line(fr, (int(x), int(y)), (int(x), int(yt - h * 0.05)), dk, w + 2, cv2.LINE_AA); cv2.line(fr, (int(x), int(y)), (int(x), int(yt - h * 0.05)), (0.55, 0.42, 0.26), w, cv2.LINE_AA)
+    cv2.line(fr, (int(x - px * 0.36), int(yt)), (int(x + px * 0.36), int(yt)), dk, w + 2, cv2.LINE_AA); cv2.circle(fr, (int(x), int(y)), w + 2, dk, -1, cv2.LINE_AA)
+    put(fr, rgb, a, x, yt + px * 0.5)
+    if crown:
+        s = h * 0.30 * g; cy = yt - h * 0.10; p = np.int32([(x - s, cy), (x - s * 1.12, cy - s * 0.95), (x - s * 0.5, cy - s * 0.45), (x, cy - s * 1.15), (x + s * 0.5, cy - s * 0.45), (x + s * 1.12, cy - s * 0.95), (x + s, cy)])
+        cv2.fillPoly(fr, [p], (0.96, 0.78, 0.26), cv2.LINE_AA); cv2.polylines(fr, [p], True, dk, max(1, w), cv2.LINE_AA)
 if __name__ == '__main__':
     from PIL import Image, ImageDraw, ImageFont
     from paper import FONT
