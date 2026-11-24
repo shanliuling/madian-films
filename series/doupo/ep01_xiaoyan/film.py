@@ -16,7 +16,7 @@ def PL(name):
     if name == 'yunlan': return yunlan.plates(R)
     if name == 'dusk': return A.tint(yunlan.plates(R), (0.95, 0.60, 0.62))
     if name in ('stele', 'hall', 'border', 'wild'): return getattr(sets, name)(R)
-    return sets.night(R, name)
+    return sets.night(R, 'wild' if name == 'wild_n' else name)
 class Act:
     """一个演员：造型 + 姿态关键帧。who='xiaoyan' 用萧炎的专门画法，其余走 F.figure。"""
     def __init__(s, who, keys, H=330, mod=None, **kw): s.who, s.f, s.H, s.mod, s.kw = who, track(keys), H, mod, kw; s.c = {}
@@ -293,7 +293,7 @@ def s_baji(t):
         if 131.1 <= b < 132: J = _xb.J(t); A.flame(c, t, lambda dt, sv: (J['h1'][0] + (sv - 0.5) * 30, J['h1'][1]), 40, 0.35, 240, 30, CYAN, a=min(1.0, (b - 131.1) * 2), seed=8); A.burst(c, J['h1'], 40 + 80 * (b - 131.1), CYAN, 0.8)
         A.sparks(c, t, bt(132), BJ, 90, 180, 70, 700, 3400, 0.6, CYAN, seed=9, w=4.5, g=300); A.ring(c, t, bt(132), BJ, 1300, 0.45, (0.8, 1, 0.95), sq=1.0, w=44); A.ring(c, t, bt(132) + 0.06, BJ, 800, 0.4, CYAN, sq=0.5, w=24); A.ring(c, t, bt(133.5), (340, GY), 800, 0.5, (1, 1, 1), w=24)
         if 132 <= b < 132.8: A.burst(c, BJ, 600 * (1 - math.exp(-(t - bt(132)) / 0.05)), CYAN, math.exp(-(t - bt(132)) / 0.12), rays=22, t=t, seed=11)
-        if b > 135: A.burst(c, (330, GY - 60), 100 + 500 * (b - 135), WIND, 0.5 * (b - 135), rays=14, t=t, seed=13)                                                              # 尘里亮起风的青光
+        if b > 135: A.burst(c, (330, GY - 60), 60 + 160 * (b - 135), WIND, 0.35 * (b - 135), rays=14, t=t, seed=13)                                                              # 尘里亮起风的青光
     fr, mask, gl, M = A.render(R, PL('yunlan'), _cb(t), [('over', ground), ('back', lambda c: aura(c, _xb, t, CYAN, k=0.5)), ('chars', chars), ('glow', glow)])
     fr = hits(fr, t, mask, gl, M, [(bt(131), (1270, 600), (3, 2, 3)), (bt(132), BJ, (1, 1, 1, 2, 2, 2, 1, 3)), (bt(133.5), (340, GY), (2, 3))])
     if 131.1 <= b < 132: fr = A.focuslines(fr, t, R, (R.w * 0.55, R.h * 0.5), a=0.5, n=60, r0=0.4, col=(0.8, 1, 0.93))
@@ -322,21 +322,101 @@ def s_lotus(t):
         if b >= 138 and b < 145.2:                                                        # 日光往剑尖上聚
             for i in range(26): ph = (t * 1.3 + rnd(i, 1)) % 1.0; th = rnd(i, 2) * 3.14 + 3.14; d = 900 * (1 - ph); p0 = (tip[0] + math.cos(th) * d, tip[1] + math.sin(th) * d * 0.8); c.move_to(*p0); c.line_to(p0[0] - math.cos(th) * 120, p0[1] - math.sin(th) * 96); c.set_source_rgba(1, 0.96, 0.75, 0.7 * ph * sun); c.set_line_width(5); c.stroke()
             A.burst(c, tip, 40 + 190 * sun, (1.0, 0.95, 0.7), 0.95, rays=16, t=t, seed=5)
-        if b >= 145.2: d = NJ['wd']; q = _nl.wp(t, 0.66, 0.6); A.burst(c, q, 300, (1.0, 0.96, 0.75), 1.0, rays=10, t=t, seed=6); c.move_to(*q); c.line_to(q[0] - d[0] * 1500 * min(1, (b - 145.2)), q[1] - d[1] * 1500 * min(1, (b - 145.2))); c.set_source_rgba(1, 0.97, 0.8, 0.8); c.set_line_width(70); c.set_line_cap(cairo.LINE_CAP_ROUND); c.stroke()
+        if b >= 145.2: d = NJ['wd']; q = _nl.wp(t, 0.66, 0.6); A.burst(c, q, 110, (1.0, 0.96, 0.75), 0.9, rays=10, t=t, seed=6); c.move_to(*q); c.line_to(q[0] - d[0] * 1500 * min(1, (b - 145.2)), q[1] - d[1] * 1500 * min(1, (b - 145.2))); c.set_source_rgba(1, 0.97, 0.8, 0.6); c.set_line_width(30); c.set_line_cap(cairo.LINE_CAP_ROUND); c.stroke()
         if b >= 139:
             k = min(1.0, (b - 139) / 0.6)
             for (hh, col, sd) in ((h1, CYAN, 3), (h2, PURP, 4)): A.flame(c, t, lambda dt, sv, hh=hh: (hh[0] + (m[0] - hh[0]) * u + (sv - 0.5) * 20, hh[1] + (m[1] - hh[1]) * u - 6), 34, 0.4, 280, 30 * (1 - 0.4 * u), col, a=0.95 * k, seed=sd)
-            if u > 0.3: lotus(c, m, 12 + 60 * (u - 0.3) / 0.7 + (40 * (b - 145) / 3 if b > 145 else 0), t, a=min(1.0, (u - 0.3) * 3))
+            if u > 0.3: lotus(c, m, 16 + 70 * (u - 0.3) / 0.7 + (60 * (b - 145) / 3 if b > 145 else 0), t, a=min(1.0, (u - 0.3) * 3))
         A.ring(c, t, bt(145), (1420, GY + 8), 800, 0.5, CYAN, w=26); A.sparks(c, t, bt(145), (1420, GY), 50, 90, 80, 500, 2400, 0.55, CYAN, seed=7, g=900)
     fr, mask, gl, M = A.render(R, PL('yunlan'), _cl(t), [('over', ground), ('back', lambda c: (aura(c, _nl, t, WIND, k=0.6, seed=21), aura(c, _xl, t, CYAN if int(t * 8) % 2 else PURP, k=0.5 * min(1, max(0, b - 139))))), ('chars', lambda c: [a.draw(c, t) for a in acts]), ('glow', glow)])
     fr = hits(fr, t, mask, gl, M, [(bt(136.6), (330, GY - 100), (2, 3)), (bt(140), tip, (3, 2, 3)), (bt(145), (1420, GY), (2, 2, 3))])
     if 145.1 < b: fr = A.speedlines(fr, t, R, a=0.45, ang=-14, n=40, col=(1, 1, 0.9))
     if 141 <= b < 144.6: fr = A.focuslines(fr, t, R, (R.w * 0.5, R.h * 0.5), a=0.4, n=60, r0=0.42, col=(0.85, 0.9, 1))
     fr = fin(fr); fr = fr + (1 - fr) * max(0.0, (b - 147.6) / 0.4) ** 2
-    fr = cap(fr, t, 136.8, 139.8, '她没败。斗气铠甲，日光聚到剑上'); fr = slam(fr, t, 140, 143.6, '风之极·陨杀', (1300, 420), px=200, glow=(255, 230, 120), big=2.6, rot=4); fr = cap(fr, t, 141.2, 144.6, '青莲地心火，加上一朵紫火，硬压进一朵莲里')
+    fr = cap(fr, t, 136.8, 139.8, '她没败。斗气铠甲，日光聚到剑上'); fr = slam(fr, t, 140, 143.6, '风之极 陨杀', (1300, 420), px=200, glow=(255, 230, 120), big=2.6, rot=4); fr = cap(fr, t, 141.2, 144.6, '青莲地心火，加上一朵紫火，硬压进一朵莲里')
     return slam(fr, t, 145.2, 147.8, '佛怒火莲', (560, 820), px=240, glow=(170, 90, 255), big=2.8, rot=-4)
 
-SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall), (64, 80, s_ring), (80, 96, s_train), (96, 116, s_swallow), (116, 129, s_fight), (129, 136, s_baji), (136, 148, s_lotus)]
+# ================= 148–166 约毕：休书、两指夹剑
+_na = Act('nalan', [(0, P(x=900, air=420, face=1, rot=-70, lean=-30, head=30, a1=(130, 160), a2=(110, 150), l1=(70, 30), l2=(50, 10), w=140)), (bt(149.6), P(x=700, air=0, face=1, rot=0, lean=40, head=20, a1=(30, 40), a2=(20, 30), l1=(80, -70), l2=(10, -88), w=-80), 'i'),
+                    (bt(156), P(x=700, face=1, lean=34, head=24, a1=(30, 40), a2=(20, 30), l1=(80, -70), l2=(10, -88), w=-80)), (bt(158.6), P(x=700, face=1, lean=4, head=-10, a1=(60, 150), a2=(20, 30), l1=(80, -70), l2=(10, -88), w=186, eye=0.0), 'io'),          # 横剑
+                    (bt(166), P(x=700, face=1, lean=6, head=-6, a1=(60, 150), a2=(20, 30), l1=(80, -70), l2=(10, -88), w=186, eye=1.0))], H=305)
+_xa = Act('xiaoyan', [(0, P(x=1150, air=440, face=-1, lean=-6, a1=(100, 92), a2=(60, 110), l1=(26, -30), l2=(-10, -56))), (bt(149.8), P(x=1180, face=-1, lean=30, head=10, a1=(30, 40), a2=(20, 30), l1=(70, -60), l2=(0, -80)), 'i'), (bt(151), P(x=1180, face=-1, lean=10, head=-10, a1=(20, 40), a2=(10, 30), l1=(20, 0), l2=(-20, -20)), 'io'),
+                      (bt(152), P(x=1180, face=-1, lean=4, head=6, a1=(60, 110), a2=(10, 30), l1=(20, 0), l2=(-20, -20))), (bt(159.5), P(x=1180, face=-1, lean=4, head=6, a1=(60, 110), a2=(10, 30), l1=(20, 0), l2=(-20, -20))),
+                      (bt(160), P(x=840, face=-1, lean=30, head=-10, a1=(96, 84), a2=(-30, -40), l1=(50, 0), l2=(-40, -40)), 'i'), (bt(164), P(x=840, face=-1, lean=22, head=-6, a1=(96, 84), a2=(-30, -40), l1=(44, 0), l2=(-36, -36))),
+                      (bt(164.4), P(x=860, face=1, lean=6, head=0, a1=(6, 16), a2=(-6, 10), l1=(10, 0), l2=(-10, -10)), 'io'), (bt(166), P(x=1100, face=1, lean=10, head=4, a1=(6, 16), a2=(-6, 10))), ], held=False,
+            mod=lambda p, t: dict(p, l1=(26 * math.sin(p['x'] / 30), 26 * math.sin(p['x'] / 30) - 14), l2=(-26 * math.sin(p['x'] / 30), -26 * math.sin(p['x'] / 30) - 14)) if t > bt(164.4) else p)
+_pap = track([(bt(150), (760, 560)), (bt(151), (900, 480), 'io'), (bt(152), (1110, 640), 'io'), (bt(166), (1110, 640))])
+_ca = camk([(bt(148), (960, 480, 1.0, 0)), (bt(150), (940, 620, 1.25, 0), 'io'), (bt(152), (960, 640, 1.4, 0), 'lin'), (bt(156), (800, 660, 1.6, 0), 'hold'), (bt(159.6), (760, 650, 1.9, 0), 'lin'), (bt(161.5), (770, 640, 2.0, 0), 'hold'), (bt(164), (780, 640, 2.2, 0), 'lin'), (bt(166), (900, 620, 1.3, 0), 'io')], [(bt(149.6), 20, 0.2), (bt(160), 20, 0.2)])
+def _closeup(t, draw, bg0, bg1, shakes=()):
+    s, c = layer(R.w, R.h); c.scale(R.k, R.k); sh = A.shake(t, shakes, FPS); c.translate(960 + sh[0], 540 + sh[1]); g = cairo.LinearGradient(0, -540, 0, 540); g.add_color_stop_rgb(0, *bg0); g.add_color_stop_rgb(1, *bg1); c.set_source(g); c.paint(); draw(c); return rgba(s)[0].copy()
+def s_after(t):
+    b = (t - 0.5) / BEAT
+    if 152 <= b < 156:                                                                    # ▲ 那张纸
+        def d(c):
+            z = 1.1 + 0.08 * (b - 152) / 4; c.scale(z, z); c.rotate(0.06 + 0.02 * math.sin(t * 2)); c.rectangle(-330, -430, 660, 860); c.set_source_rgb(0.86, 0.80, 0.66); c.fill()
+            for x in (-110, 110): c.move_to(x, -430); c.line_to(x, 430); c.set_source_rgba(0.4, 0.3, 0.2, 0.5); c.set_line_width(4); c.stroke()
+            c.move_to(-330, 0); c.line_to(330, 0); c.stroke()
+            for i in range(7):
+                c.set_source_rgba(0.1, 0.1, 0.12, 0.6); c.set_line_width(9); x = 250 - i * 62
+                for j in range(9): y = -370 + j * 46; c.move_to(x - 14 + 8 * rnd(i, j), y); c.line_to(x + 12 * rnd(j, i), y + 26); c.stroke()
+            c.set_source_rgba(0.42, 0.10, 0.08, 0.85); c.save(); c.translate(-120, 190); c.arc(0, 30, 78, 0, 7); c.fill()
+            for i, (ax, ln) in enumerate(((-66, 110), (-30, 150), (8, 160), (44, 140))): c.save(); c.translate(ax, -30); c.rotate((i - 1.5) * 0.12); c.rectangle(-17, -ln, 34, ln); c.arc(0, -ln, 17, 0, 7); c.fill(); c.restore()
+            c.save(); c.translate(86, 30); c.rotate(1.0); c.rectangle(-19, -100, 38, 100); c.arc(0, -100, 19, 0, 7); c.fill(); c.restore(); c.restore()
+        fr = fin(_closeup(t, d, (0.45, 0.62, 0.86), (0.78, 0.86, 0.95))); return cap(fr, t, 152.3, 156, '三年前那张休证。纸折旧了，血手印还在')
+    if 160 <= b < 161.5:                                                                  # ▲ 两指夹住剑刃
+        def d(c):
+            c.rotate(-0.10); c.move_to(-1200, -26); c.line_to(700, -20); c.line_to(820, 0); c.line_to(700, 20); c.line_to(-1200, 26); c.close_path(); g = cairo.LinearGradient(0, -26, 0, 26); g.add_color_stop_rgb(0, 1, 1, 1); g.add_color_stop_rgb(0.5, 0.75, 0.82, 0.92); g.add_color_stop_rgb(1, 0.96, 0.98, 1); c.set_source(g); c.fill_preserve(); c.set_source_rgb(0.05, 0.06, 0.1); c.set_line_width(6); c.stroke()
+            for (y0, sg) in ((-22, -1), (22, 1)): c.move_to(260, y0 + sg * 420); c.curve_to(200, y0 + sg * 240, 60, y0 + sg * 110, 20, y0 + sg * 6); c.curve_to(60, y0 - sg * 10, 130, y0, 170, y0 + sg * 50); c.curve_to(260, y0 + sg * 150, 400, y0 + sg * 300, 440, y0 + sg * 420); c.close_path(); c.set_source_rgb(*F.SKIN); c.fill_preserve(); c.set_source_rgb(0.05, 0.06, 0.1); c.set_line_width(8); c.stroke()
+            A.sparks(c, t, bt(160), (60, 0), 50, 180, 180, 300, 1800, 0.5, (1, 0.95, 0.8), seed=3, w=5); A.ring(c, t, bt(160), (60, 0), 700, 0.4, (1, 1, 1), sq=1.0, w=20)
+        fr = _closeup(t, d, (0.42, 0.60, 0.86), (0.80, 0.88, 0.96), [(bt(160), 30, 0.25)]); n = int(round((t - bt(160)) * 60))
+        if 0 <= n < 3: fr = 1 - fr
+        return cap(fin(fr), t, 160.4, 161.5, '「我对收你为奴为婢，并没有太大兴趣。」')
+    pp = _pap(t); acts = [_na, _xa]
+    def chars(c):
+        [a.draw(c, t, held=(b < 149 or b >= 157) if a is _na else False) for a in acts]
+        if 150 <= b: c.save(); c.translate(pp[0], pp[1]); c.rotate(math.sin(t * 5) * 0.5 * (1 if b < 152 else 0)); c.rectangle(-14, -20, 28, 40); c.set_source_rgb(0.9, 0.85, 0.7); c.fill_preserve(); c.set_source_rgb(0.05, 0.06, 0.1); c.set_line_width(3); c.stroke(); c.restore()
+    def ground(c): shadow(c, acts, t); A.puff(c, t, bt(149.6), (700, GY + 6), 22, 240, 100, 30, 160, 1.1, (0.86, 0.9, 0.96, 0.75), 1); A.puff(c, t, bt(149.8), (1180, GY + 6), 16, 160, 80, 26, 130, 0.9, (0.86, 0.9, 0.96, 0.7), 2)
+    fr, mask, gl, M = A.render(R, PL('yunlan'), _ca(t), [('over', ground), ('chars', chars), ('glow', lambda c: A.emit(c, t, bt(148), bt(151), 40, lambda tb: (500 + 900 * rnd(int(tb * 61), 1), 200 + 300 * rnd(int(tb * 61), 2)), ang=270, spread=60, v0=100, v1=500, life=1.2, col=PURP if int(t * 7) % 2 else CYAN, w=4, g=300, seed=5))])
+    fr = fin(fr); fr = fr + (1 - fr) * max(0.0, 1 - (b - 148) / 1.4)
+    fr = cap(fr, t, 150.2, 152, '她怀里，飘出一张白纸'); fr = cap(fr, t, 156.3, 159.8, '她认了输，横剑就往脖子上抹'); fr = cap(fr, t, 161.5, 164, '「我对收你为奴为婢，并没有太大兴趣。」'); fr = slam(fr, t, 164.3, 166, '三年之约 结束', (960, 330), px=200, glow=(40, 255, 200), big=2.0)
+    return fr * min(1.0, max(0.0, (166 - b) / 0.5) + 0.0) if b > 165.5 else fr
+
+# ================= 166–193 代价：萧家被袭、父亲失踪（音乐安静）
+_wlk = lambda p, t: dict(p, l1=(24 * math.sin(p['x'] / 30), 24 * math.sin(p['x'] / 30) - 12), l2=(-24 * math.sin(p['x'] / 30), -24 * math.sin(p['x'] / 30) - 12))
+_xg = Act('xiaoyan', [(bt(166), P(x=120, lean=8, a1=(6, 16), a2=(-6, 10))), (bt(169), P(x=640, lean=8, a1=(6, 16), a2=(-6, 10)), 'lin'), (bt(169.3), P(x=650, lean=0, head=-10, a1=(6, 16), a2=(-6, 10)), 'o'), (bt(170), P(x=650, lean=0, head=-10))], back=True, held=False, mod=lambda p, t: _wlk(p, t) if t < bt(169) else p)
+_zg = Act('xiaozhan', [(0, P(x=960, lean=0, head=-20, a1=(10, 30), a2=(-10, 0))), (bt(172), P(x=960, lean=-6, head=-24, a1=(40, 100), a2=(-30, -20), l1=(20, 0), l2=(-20, -20))), (bt(173.8), P(x=940, lean=-10, head=-20, a1=(60, 120), a2=(40, 110), l1=(24, 0), l2=(-24, -20), mouth=1)),
+                       (bt(174), P(x=1000, lean=34, head=-10, a1=(90, 90), a2=(80, 86), l1=(50, -4), l2=(-40, -50), mouth=1), 'ii'), (bt(175.6), P(x=1010, lean=20, head=-20, a1=(40, 60), a2=(-20, -30), l1=(40, 0), l2=(-30, -40))), (bt(178), P(x=2300, lean=40, head=-20, a1=(-30, 40), a2=(40, 90), mouth=1), 'i')], H=340, mod=lambda p, t: _wlk(p, t) if t > bt(175.6) else p)
+_hg = [Act('hood', [(0, P(x=x0, air=900, face=fc, lean=0)), (bt(170.6 + 0.3 * i), P(x=x0, air=900, face=fc)), (bt(172 + 0.3 * i), P(x=x0, air=230 + 40 * i, face=fc, lean=4), 'o'), (bt(173.9), P(x=x0, air=220 + 40 * i, face=fc, lean=10, a1=(70, 100))),
+                    (bt(174.3), P(x=x0 + 80, air=300, face=1, lean=-10, a1=(30, 60)), 'o'), (bt(176.6), P(x=x0 + 1700, air=700, face=1, lean=40), 'i'), (bt(178), P(x=x0 + 2600, air=900, face=1, lean=40))], H=340, mod=lambda p, t, i=i: dict(p, air=p['air'] + 12 * math.sin(t * 2 + i))) for i, (x0, fc) in enumerate(((620, 1), (1330, -1), (1560, -1)))]
+_cg = camk([(bt(166), (700, 560, 1.0, 0)), (bt(170), (860, 580, 1.15, 0), 'lin'), (bt(170.02), (960, 480, 0.95, 0), 'hold'), (bt(174), (980, 500, 1.05, 0), 'lin'), (bt(178), (1250, 520, 1.1, 0), 'io')], [(bt(174), 26, 0.25)])
+_xd = Act('xiaoyan', [(0, P(x=960, lean=6, head=26, a1=(6, 16), a2=(-6, 10), eye=0.0)), (bt(188.6), P(x=960, lean=6, head=26, a1=(6, 16), a2=(-6, 10), eye=0.0)), (bt(190), P(x=960, lean=2, head=-4, a1=(6, 16), a2=(-6, 10), eye=0.0), 'io'), (bt(190.1), P(x=960, lean=2, head=-6, eye=1.2, glint=1.0), 'snap'), (bt(193), P(x=960, lean=2, head=-6, eye=1.0, glint=1.0))], back=True, held=False)
+_HD = _xd.J(bt(192))['head']; _cd = camk([(bt(186), (_HD[0] + 30, _HD[1] + 30, 2.6, 0)), (bt(190), (_HD[0] + 30, _HD[1] + 10, 3.2, 0), 'lin'), (bt(190.1), (_HD[0] + 30, _HD[1], 3.8, -3), 'snap'), (bt(193), (_HD[0] + 30, _HD[1], 4.2, -3), 'lin')], [(bt(190.1), 14, 0.2)])
+def s_home(t):
+    b = (t - 0.5) / BEAT
+    if b < 170:
+        fr, mask, gl, M = A.render(R, PL('gate'), _cg(t), [('over', lambda c: shadow(c, [_xg], t)), ('chars', lambda c: _xg.draw(c, t))]); fr = fin(fr) * min(1.0, (b - 166) * 2)
+        fr = cap(fr, t, 166.4, 170, '乌坦城 · 萧家', y=80, px=58, col=(255, 226, 170)); return cap(fr, t, 166.8, 170, '他回到家。大门口，一个门卫都没有')
+    if b < 178:                                                                           # 三天前（整个画面压成暗红）
+        acts = [_zg] + _hg
+        def glow(c):
+            A.ring(c, t, bt(174), (1160, 560), 800, 0.5, (1, 0.3, 0.3), sq=1.0, w=30); A.sparks(c, t, bt(174), (1160, 560), 60, 0, 180, 400, 2400, 0.6, (1, 0.4, 0.3), seed=4)
+            if 174 <= b < 174.8: A.burst(c, (1160, 560), 500 * (1 - math.exp(-(t - bt(174)) / 0.05)), (1, 0.3, 0.3), math.exp(-(t - bt(174)) / 0.12), rays=18, t=t, seed=5)
+        fr, mask, gl, M = A.render(R, PL('gate'), _cg(t), [('over', lambda c: shadow(c, [_zg], t)), ('back', lambda c: [aura(c, h, t, (0.5, 0.1, 0.6), n=20, k=0.5, seed=30 + i) for i, h in enumerate(_hg)]), ('chars', lambda c: [a.draw(c, t) for a in acts]), ('glow', glow)])
+        fr = hits(fr, t, mask, gl, M, [(bt(174), (1160, 560), (2, 2, 3))]); fr = fin(fr); g = fr.mean(-1, keepdims=True); fr = g * np.float32((1.25, 0.62, 0.58)) * 0.6 + fr * 0.4
+        fr = cap(fr, t, 170.2, 174, '三天前，三个黑袍人夜袭萧家'); return cap(fr, t, 174.4, 178, '父亲萧战追了出去，再没有回来')
+    if b < 186:                                                                           # ▲ 玉片里的光点
+        def d(c):
+            c.rotate(-0.06); c.new_path(); c.arc(-170, -120, 60, 3.14, 4.71); c.arc(170, -120, 60, 4.71, 6.283); c.arc(170, 120, 60, 0, 1.57); c.arc(-170, 120, 60, 1.57, 3.14); c.close_path(); g = cairo.LinearGradient(0, -180, 0, 180); g.add_color_stop_rgb(0, 0.62, 0.86, 0.74); g.add_color_stop_rgb(1, 0.30, 0.56, 0.48); c.set_source(g); c.fill_preserve(); c.set_source_rgb(0.03, 0.08, 0.08); c.set_line_width(8); c.stroke()
+            c.set_source_rgba(0.1, 0.3, 0.26, 0.6); c.set_line_width(4); c.rectangle(-190, -140, 380, 280); c.stroke(); wtext(c, '萧', 0, 0, 200, (0.1, 0.3, 0.26), 0.35)
+            p = (150 * math.sin(t * 1.1), 90 * math.sin(t * 1.7 + 1)); A.burst(c, p, 30 + 6 * math.sin(t * 9), (1.0, 0.95, 0.7), 1.0)
+            for k in range(1, 14): tt = t - k * 0.03; A.burst(c, (150 * math.sin(tt * 1.1), 90 * math.sin(tt * 1.7 + 1)), 14 - k * 0.8, (1.0, 0.9, 0.6), 0.5 - k * 0.035)
+        fr = fin(_closeup(t, d, (0.02, 0.03, 0.08), (0.06, 0.08, 0.16))) * min(1.0, (b - 178) * 3)
+        fr = cap(fr, t, 178.4, 182, '祖传的玉片里，父亲的灵魂光点还在——人还活着'); return cap(fr, t, 182.3, 186, '黑袍人留下的能量痕迹，属于云岚宗的首席长老')
+    k = min(1.0, max(0.0, (b - 190) * 10)); fr, mask, gl, M = A.render(R, PL('wild_n'), _cd(t), [('back', lambda c: aura(c, _xd, t, CYAN, n=50, k=0.7 * k, rise=600)), ('chars', lambda c: _xd.draw(c, t))])
+    fr = hits(fr, t, mask, gl, M, [(bt(190.1), _HD, (2, 3))]); fr = fin(fr) * (0.25 + 0.75 * min(1.0, max(0.0, (b - 186) / 4)) if b < 190 else 1.0)
+    return cap(fr, t, 187, 193, '「此次，他必须死。谁阻，谁死。」')
+
+SHOTS = [(0, 4, s_hook), (4, 32, s_stele), (32, 64, s_hall), (64, 80, s_ring), (80, 96, s_train), (96, 116, s_swallow), (116, 129, s_fight), (129, 136, s_baji), (136, 148, s_lotus), (148, 166, s_after), (166, 193, s_home)]
 def frame(t):
     b = (t - 0.5) / BEAT
     for (b0, b1, fn) in SHOTS:
