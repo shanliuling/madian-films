@@ -23,8 +23,8 @@ class Act:
     def J(s, t):
         t = round(t, 4)
         if t not in s.c:
-            p = dict(s.f(t)); p = s.mod(p, t) if s.mod else p; s.c[t] = F.kin(p, s.H, GY)
             if len(s.c) > 6000: s.c.clear()
+            p = dict(s.f(t)); p = s.mod(p, t) if s.mod else p; s.c[t] = F.kin(p, s.H, GY)
         return s.c[t]
     def draw(s, c, t, alpha=1.0, **kw):
         k = dict(s.kw); k.update(kw)
@@ -556,8 +556,8 @@ def s_map(t):
         for k in range(1, int(g * 80) + 1): c.line_to(*route(k / 80))
         c.set_source_rgba(0.6, 0.08, 0.08, 0.95); c.set_line_width(10); c.set_line_cap(cairo.LINE_CAP_ROUND); c.stroke()
         for i in range(16):                                                               # 搜山的云岚宗弟子
-            th = -0.9 + 1.9 * rnd(i, 6); r_ = (80 + 520 * rnd(i, 7)) * min(1.0, (b - 248) / 9); p = (_MA[0] + math.cos(th) * r_, _MA[1] + math.sin(th) * r_ * 0.8); c.arc(p[0], p[1], 11, 0, 7); c.set_source_rgb(0.96, 0.98, 1); c.fill_preserve(); c.set_source_rgb(*INKC); c.set_line_width(4); c.stroke()
-        for (p, s_) in ((_MA, '云岚山'), (_MB, '魔兽山脉'), ((_MC[0] + 160, _MC[1]), '边境')): c.arc(p[0], p[1], 16, 0, 7); c.set_source_rgb(*INKC); c.fill(); wtext(c, s_, p[0], p[1] - 70, 62, INKC)
+            th = -0.9 + 1.9 * rnd(i, 6); r_ = (80 + 520 * rnd(i, 7)) * min(1.0, (b - 248) / 9); p = (_MA[0] + math.cos(th) * r_, _MA[1] + math.sin(th) * r_ * 0.8); c.new_path(); c.arc(p[0], p[1], 11, 0, 7); c.set_source_rgb(0.96, 0.98, 1); c.fill_preserve(); c.set_source_rgb(*INKC); c.set_line_width(4); c.stroke()
+        for (p, s_) in ((_MA, '云岚山'), (_MB, '魔兽山脉'), ((_MC[0] + 160, _MC[1]), '边境')): c.new_path(); c.arc(p[0], p[1], 16, 0, 7); c.set_source_rgb(*INKC); c.fill(); wtext(c, s_, p[0], p[1] - 70, 62, INKC)
         wtext(c, '加玛帝国', -100, -400, 110, INKC, 0.35); q = route(g); A.burst(c, q, 40 + 6 * math.sin(t * 10), CYAN, 1.0); A.flame(c, t, lambda dt, sv: (q[0] + (sv - 0.5) * 20, q[1]), 20, 0.4, 160, 20, CYAN, a=0.9, seed=3)
     fr = fin(_closeup(t, d, (0.90, 0.85, 0.72), (0.78, 0.70, 0.56))); fr = fr * min(1.0, (b - 248) * 3 + 0.2) * min(1.0, (262 - b) * 3 + 0.0)
     fr = cap(fr, t, 248.5, 254.5, '云岚宗满山搜捕。他钻进魔兽山脉，一路逃向边境'); return cap(fr, t, 255, 261.6, '赢了三年之约的人，成了加玛帝国容不下的人')
@@ -569,7 +569,7 @@ _ce = camk([(bt(262), (700, 560, 1.0, 0)), (bt(268), (1000, 580, 1.1, 0), 'lin')
 def s_end(t):
     b = (t - 0.5) / BEAT
     if b >= 288:                                                                          # 下集
-        fr = np.zeros((R.h, R.w, 3), np.float32); s, c = layer(R.w, R.h); c.scale(R.k, R.k); A.flame(c, t, lambda dt, sv: (260 + 1400 * sv, 820 + 40 * math.sin(sv * 9)), 130, 0.9, 460, 70, (1.0, 0.5, 0.15), a=0.5, seed=5, wob=30); fr = A.add_glow(fr, s, 20 * R.k, 1.0)
+        fr = np.zeros((R.h, R.w, 3), np.float32); s, c = layer(R.w, R.h); c.scale(R.k, R.k); A.flame(c, t, lambda dt, sv: (260 + 1400 * sv, 960 + 40 * math.sin(sv * 9)), 130, 0.9, 460, 70, (1.0, 0.5, 0.15), a=0.5, seed=5, wob=30); fr = A.add_glow(fr, s, 20 * R.k, 1.0)
         fr = slam(fr, t, 288, 296, '炎帝', (960, 500), px=380, glow=(255, 130, 30), big=2.0); fr = caption(fr, '下集', y=250, px=64, col=(255, 226, 170)); fr = caption(fr, '斗之力三段的废物，凭什么成了炎帝？', y=760, px=50); return fr * min(1.0, max(0.0, (DUR - 0.2 - t) / 1.2))
     ya = min(1.0, max(0.0, (b - 272) / 1.5)); dark = min(1.0, max(0.0, (b - 282) * 8))
     def glow(c):
@@ -590,6 +590,10 @@ def frame(t):
         if b0 <= b < b1 or (b0 == 0 and b < 0): return fn(t)
     return np.zeros((R.h, R.w, 3), np.float32)
 def u8(fr): return (np.clip(fr, 0, 1) * 255).astype(np.uint8)
+def _cat(k, out):
+    open('out/_fcat.txt', 'w').write(''.join(f"file '_fseg{R.h}_{i:02d}.mp4'\n" for i in range(k)))
+    subprocess.run(['ffmpeg', '-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', 'out/_fcat.txt', '-i', 'out/mixfilm.wav', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', out], check=True); print('done', out)
+
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'full'
     if cmd == 'strip':
@@ -600,9 +604,10 @@ if __name__ == '__main__':
         i, k = int(sys.argv[2]), int(sys.argv[3]); n = int(DUR * FPS); p = fight._enc(f'out/_fseg{R.h}_{i:02d}.mp4')
         for j in range(n * i // k, n * (i + 1) // k): p.stdin.write(u8(frame(j / FPS)).tobytes())
         p.stdin.close(); p.wait()
+    elif cmd == 'cat':
+        k = int(sys.argv[2]); out = f'out/xiaoyan1_{R.h}p.mp4'; _cat(k, out)
     else:
         k = max(1, (os.cpu_count() or 2)) * 2; out = f'out/xiaoyan1_{R.h}p.mp4'; subprocess.run([sys.executable, 'mixfilm.py'], check=True); nproc = os.cpu_count() or 2
         for g in range(0, k, nproc):
-            if any(p.wait() for p in [subprocess.Popen([sys.executable, 'film.py', 'seg', str(i), str(k)]) for i in range(g, min(k, g + nproc))]): sys.exit('有分段渲染失败')
-        open('out/_fcat.txt', 'w').write(''.join(f"file '_fseg{R.h}_{i:02d}.mp4'\n" for i in range(k)))
-        subprocess.run(['ffmpeg', '-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', 'out/_fcat.txt', '-i', 'out/mixfilm.wav', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-shortest', '-movflags', '+faststart', out], check=True); print('done', out)
+            if any([p.wait() for p in [subprocess.Popen([sys.executable, 'film.py', 'seg', str(i), str(k)]) for i in range(g, min(k, g + nproc))]]): sys.exit('有分段渲染失败')
+        _cat(k, out)
