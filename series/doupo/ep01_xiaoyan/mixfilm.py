@@ -4,7 +4,7 @@
 import _env, subprocess, numpy as np
 from scipy import signal
 from scipy.io import wavfile
-SR = 44100; BEAT = 0.59413; NB = 254.5; DUR = 0.50 + NB * BEAT; n = int(DUR * SR); t = np.arange(n) / SR
+SR = 44100; BEAT = 0.59413; NB = 247.5; DUR = 0.50 + NB * BEAT; n = int(DUR * SR); t = np.arange(n) / SR
 def bt(b): return 0.50 + b * BEAT
 _src = open('mix.py').read(); T = {'__name__': 'mixlib'}; exec(compile(_src[:_src.index('# 音乐')], 'mix.py', 'exec'), T)      # 试片的合成工具箱和它那段音效
 verb, tt, S, whoosh, boom, crack, ping, clang, lp, hp, bp, r = (T[k] for k in ('verb', 'tt', 'S', 'whoosh', 'boom', 'crack', 'ping', 'clang', 'lp', 'hp', 'bp', 'r')); FT = T['F']
@@ -102,15 +102,15 @@ burnfx(216); add(wind(14 * BEAT), 216, 0, 0.14); add(riser(1.0 * BEAT), 229, 0, 
 for k, b in enumerate((230.4, 230.65)): add(slamhit(1.2), b, -0.5 + k, 0.7)
 for k in range(11): add(S(ping(180 + 37 * (k % 4), 0.3, 12, ((1, 1.0), (2.9, 0.7), (5.1, 0.5))), crack(0.06, 2400) * 0.8), 229.9 + k * 0.4, -0.7 + 0.14 * k, 0.3)
 add(S(boom(1.4, 70, 30, 3), whoosh(1.0, 300, 4000, 0.7), fire(1.6, 1800)), 236, 0, 0.8); add(fire(4.5 * BEAT, 1800), 236.6, 0, 0.3)
-add(fire(13 * BEAT, 1500), 241, -0.3, 0.3)
-for k in range(30): add(crack(0.04, 2000 + 1500 * r.random()), 241.3 + 12.5 * r.random(), -0.3, 0.10 + 0.12 * r.random())
-add(verb(ping(784, 2.0, 2), 2.4, 0.35, 18), 241.8, 0.3, 0.4); add(verb(ping(1175, 2.0, 2.4), 2.4, 0.35, 19), 243.2, 0.3, 0.3)
+add(fire(6.4 * BEAT, 1500), 241, -0.3, 0.3)
+for k in range(16): add(crack(0.04, 2000 + 1500 * r.random()), 241.2 + 5.6 * r.random(), -0.3, 0.10 + 0.12 * r.random())
+add(verb(ping(784, 2.0, 2), 2.4, 0.35, 18), 241.3, 0.3, 0.4); add(verb(ping(1175, 2.0, 2.4), 2.4, 0.35, 19), 242.1, 0.3, 0.3)
 # ---- 音乐在大招前收一下；命中时压一下；命中后的慢放里音乐退后
 duck = np.ones(n, np.float32)
 for b0, b1, d in ((47.4, 48, 0.25), (95.6, 96, 0.3), (111.2, 112, 0.2), (179.5, 180, 0.3), (195.4, 196, 0.25), (211.5, 212, 0.2), (229.5, 230, 0.3)):
     k = (t >= bt(b0) - 0.06) & (t < bt(b1)); duck[k] = np.minimum(duck[k], 1 - (1 - d) * np.clip((t[k] - (bt(b0) - 0.06)) / 0.06, 0, 1))
 for b in (48, 70, 71, 74, 96, 112, 166, 180, 212, 230): k = (t >= bt(b)) & (t < bt(b) + 0.35); duck[k] = np.minimum(duck[k], 0.55 + 0.45 * (t[k] - bt(b)) / 0.35)
 k = (t >= bt(112.6)) & (t < bt(118)); duck[k] = np.minimum(duck[k], 0.62 + 0.38 * np.clip((t[k] - bt(116.5)) / (1.5 * BEAT), 0, 1))
-pkb = [(round(float(np.abs(sfx[int(bt(b) * SR):int(bt(b + 1) * SR)]).max()) * 0.32, 2), b) for b in range(0, 254)]; print('sfx 最响的拍', sorted(pkb, reverse=True)[:12])
+pkb = [(round(float(np.abs(sfx[int(bt(b) * SR):int(bt(b + 1) * SR)]).max()) * 0.32, 2), b) for b in range(0, int(NB))]; print('sfx 最响的拍', sorted(pkb, reverse=True)[:12])
 out = music * duck[:, None] * 0.92 + sfx[:n] * 0.32; k = t > DUR - 2.4; out[k] *= np.clip((DUR - 0.1 - t[k]) / 2.3, 0, 1)[:, None]; pk = np.abs(out).max(); out = np.tanh(out * 1.15) * 0.97
 print('rms music', round(float(np.sqrt((music ** 2).mean())), 3), 'sfx', round(float(np.sqrt((sfx[:n] ** 2).mean())) * 0.40, 3), 'peak', round(float(pk), 2)); wavfile.write('out/mixfilm.wav', SR, (out * 32767).astype(np.int16)); print('out/mixfilm.wav', round(DUR, 2))
