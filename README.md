@@ -1,14 +1,20 @@
 # madian-films
 
-「码点小人」短片的 skill：引擎代码、导演说明、系列设定和示例片。
+「码点小人」短片的 skill：一个系列一个文件夹，各有自己的 `SKILL.md`（导演要求、系列固定、示例片），互不相干。`engine/` 是各系列共用的代码。
 
-- 给 AI 用：让它先读 [`SKILL.md`](SKILL.md)。支持 skill 的工具可以把整个仓库放进它的 skills 目录；其他工具在这个仓库里直接开工即可（`AGENTS.md`、`CLAUDE.md` 会把它引到 `SKILL.md`）。
-- 系列：[`series/asoiaf/SERIES.md`](series/asoiaf/SERIES.md) 《权力的游戏》人物志。
-- 示例片：[`series/asoiaf/ep01_ned/`](series/asoiaf/ep01_ned/)，成片在 `reference/ned_540p.mp4`。
+| 系列 | 给 AI 读的文件 | 类型 | 示例片 |
+|---|---|---|---|
+| 《权力的游戏》人物志 | [`series/asoiaf/SKILL.md`](series/asoiaf/SKILL.md) | 克制的历史叙事 | `series/asoiaf/ep01_ned/reference/ned_540p.mp4` |
+| 《斗破苍穹》人物志 | [`series/doupo/SKILL.md`](series/doupo/SKILL.md) | 玄幻打斗 | `series/doupo/ep01_xiaoyan/reference/xiaoyan1_540p.mp4` |
+
+- 给 AI 用：告诉它做哪个系列，让它只读那个系列的 `SKILL.md`（`AGENTS.md`、`CLAUDE.md` 也是这么写的）。两个系列的片子路子相反，读了另一个会带偏。
+- 仓库要整个用：各系列的代码都依赖 `engine/`，不能只拷一个系列的文件夹走。
+- 加一个新系列：在 `series/` 下建一个文件夹，写它自己的 `SKILL.md`（这个系列是什么片子、用户对它说过的话、系列固定、集数、仓库里用到什么），再在上面的表里加一行。不要把它的东西写进别的系列的文件。
 
 ```
 pip install -r requirements.txt
 cd series/asoiaf/ep01_ned && python film.py full        # 540p；RES=1080 出 1080p
+cd series/doupo/ep01_xiaoyan && python film.py          # 540p；RES=1080 出 1080p
 ```
 
-仓库里的 BGM 和地图轮廓素材有版权，仓库请保持私有。
+仓库里的 BGM、地图轮廓素材和漫画参考图有版权，仓库请保持私有。
