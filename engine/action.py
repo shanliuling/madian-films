@@ -191,3 +191,21 @@ class Slam:
         M = cv2.getRotationMatrix2D((s.W / 2, s.H / 2), rot, sc); M[0, 2] += cx - s.W / 2; M[1, 2] += cy - s.H / 2
         w = lambda a: cv2.warpAffine(a, M, (R.w, R.h), flags=cv2.INTER_LINEAR); a = w(s.al)[..., None] * al
         return (fr + w(s.glow) * al) * (1 - a) + w(s.rgb) * al
+
+# ---------- 一帧的通用合成：背景板 → 各层（world 坐标里用 cairo 画）
+def render(R, plates, cam, layers):
+    """layers = [(kind, fn(c))]：'over' 普通叠加；'chars' 人物层（留下 alpha 给冲击帧用）；'back' 身后的光（斗气）；'glow' 发光特效。返回 (帧, 人物 alpha, 特效亮度, 矩阵)。"""
+    fr = None
+    for pl, d in plates: fr = plate(fr, pl, cam_m(cam, d, R), R)
+    M = cam_m(cam, 1.0, R); q = cam[2] * R.k; mask = np.zeros((R.h, R.w, 1), np.float32); glow = np.zeros((R.h, R.w, 3), np.float32)
+    for kind, fn in layers:
+        s, c = ctx(R, M); fn(c)
+        if kind == 'glow': glow = rgba(s)[0]; fr = add_glow(fr, s, 14 * q, 1.1)
+        elif kind == 'back': fr = add_glow(fr, s, 16 * q, 0.9, body=0.9)
+        else:
+            if kind == 'chars': mask = rgba(s)[1]
+            rgb, al = rgba(s); fr = fr * (1 - al) + rgb
+    return fr, mask, glow, M
+def tint(plates, mul, add=(0, 0, 0)):
+    """给一套背景板整体调色（黄昏、夜里）。"""
+    return [(dict(pl, rgb=np.clip(pl['rgb'] * np.float32(mul) + np.float32(add) * (1 if pl.get('a') is None else pl['a'][..., None]), 0, 1).astype(np.float32)), d) for pl, d in plates]
