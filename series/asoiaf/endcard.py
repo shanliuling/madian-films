@@ -1,10 +1,11 @@
 """endcard — 冰火系列片尾署名画面：绿先知坐在鱼梁木树根里，三眼乌鸦停在膝头（第三只眼在 0.5–1.0 秒睁开），灯挂在树枝上。
-greenseer(x, gy, Hh, t) → (rgb, alpha, add, (灯x, 灯y))，1920×1080 画布，float32；python endcard.py 出一张静帧 out/_endcard.jpg"""
+greenseer(x, gy, Hh, t, hide=家族) → (rgb, alpha, add, (灯x, 灯y))，1920×1080 画布，float32；hide 是下一集人物的家族，家徽藏在右边的黑暗里，第三只眼睁开时闪一下；python endcard.py 出一张静帧 out/_endcard.jpg"""
 import math, numpy as np, cv2, cairo
 W, H = 1920, 1080
 def _layer():
     s = cairo.ImageSurface(cairo.FORMAT_ARGB32, W, H); return s, cairo.Context(s)
 def _alpha(s): return np.frombuffer(s.get_data(), np.uint8).reshape(H, W, 4)[..., 3].astype(np.float32) / 255
+_G = {}
 def _shift(a, dx, dy): return cv2.warpAffine(a, np.float32([[1, 0, dx], [0, 1, dy]]), (W, H))
 # ---------------- 绿先知 + 三眼乌鸦（片尾署名）：鱼梁木白树干、红叶、树上刻脸；斗篷人坐在树根里；三眼乌鸦停在他膝上，第三只眼发红光；灯挂在树枝上
 def _leafpath(c, x, y, r, rot):
@@ -14,7 +15,7 @@ def _taper(c, pts, w0, w1):
     n = len(pts) - 1
     for i in range(n): c.set_line_width(w0 + (w1 - w0) * i / max(1, n - 1)); c.move_to(*pts[i]); c.line_to(*pts[i + 1]); c.stroke()
 def _bez(p0, p1, p2, p3, n=18): return [tuple((1 - v) ** 3 * np.float32(p0) + 3 * (1 - v) ** 2 * v * np.float32(p1) + 3 * (1 - v) * v * v * np.float32(p2) + v ** 3 * np.float32(p3)) for v in np.linspace(0, 1, n)]
-def greenseer(x=560, gy=900, Hh=600, t=0.0):
+def greenseer(x=560, gy=900, Hh=600, t=0.0, hide=None):
     u = Hh; th = 0.09 * math.sin(t * 1.9) + 0.03 * math.sin(t * 4.3); rr = np.random.default_rng(11)
     def X(a): return x + a * u
     def Y(b): return gy - b * u
@@ -86,9 +87,13 @@ def greenseer(x=560, gy=900, Hh=600, t=0.0):
     fl = 0.86 + 0.14 * math.sin(t * 15) * math.sin(t * 6.1 + 1)
     add = (cv2.GaussianBlur(core, (0, 0), 70)[..., None] * 1.5 + cv2.GaussianBlur(core, (0, 0), 16)[..., None] * 1.0 + core[..., None] * 0.9) * np.float32((1.0, 0.78, 0.40)) * fl
     add = add + (cv2.GaussianBlur(reye, (0, 0), 7)[..., None] * 1.1 + reye[..., None] * 1.0) * np.float32((1.0, 0.16, 0.10)) + (cv2.GaussianBlur(geye, (0, 0), 5)[..., None] * 0.7 + geye[..., None] * 0.8) * np.float32((1.0, 0.14, 0.10))
+    if hide:                                                                              # 下一集的家徽：第三只眼睁开时在黑暗里闪一下，然后只剩很淡的影子
+        import heraldry
+        if hide not in _G: n = int(1.24 * u); g = np.zeros((H, W, 3), np.float32); x0, y0 = int(x + 1.17 * u - n / 2), int(gy - 0.64 * u - n / 2); sr, sa = heraldry.sigil(hide, n); g[y0:y0 + n, x0:x0 + n] = sr * (sa if sa.ndim == 3 else sa[..., None]); _G[hide] = g / max(0.4, float(np.percentile(g.max(-1)[g.max(-1) > 0.02], 90)))
+        add = add + _G[hide] * (1 - al[..., None]) * (op * (0.022 + 0.085 * math.exp(-max(0.0, t - 1.0) * 2.0)) * fl)
     return rgb.astype(np.float32), al, add.astype(np.float32), (lx, ly)
 if __name__ == '__main__':
-    import os
+    import os, sys
     from PIL import Image
-    rgb, a, add, _ = greenseer(t=1.5); os.makedirs('out', exist_ok=True)
+    rgb, a, add, _ = greenseer(t=float(sys.argv[2]) if len(sys.argv) > 2 else 1.5, hide=sys.argv[1] if len(sys.argv) > 1 else None); os.makedirs('out', exist_ok=True)
     Image.fromarray((np.clip(rgb + add, 0, 1) * 255).astype(np.uint8)).save('out/_endcard.jpg', quality=90)
