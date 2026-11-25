@@ -12,22 +12,19 @@ World(cfg) 的 cfg（dict）：
   extra_rivers  [dict(pts=[(lon,lat),...], width=6.5, dash=False, ink=None)]  手绘水系（古河道、运河）
   main_rivers / major_rivers   Natural Earth 河名关键字：最粗 / 次粗
   relief        地形晕染强度（默认 1；范围小、地形碎的地方可以调低）
-  relief_raster 是否读取全球晕渲图（默认 True；自备虚构世界地形时可设 False）
   river_filter  可选 callable(name, p0, p1) -> None | 'thin' | 'skip'，用于改写个别河段（例：今黄河下游画细）
-数据文件放 data_dir（可以用 python -m engine.mapwar.setup_data 下载，见 README.md）。
+数据文件放 data_dir（tools/setup_data.py 会下载）：ne_50m_land / ne_10m_rivers_lake_centerlines / ne_10m_lakes .geojson + shadedrelief.jpg
 """
 import os, json, math
-from pathlib import Path
 import numpy as np, cairo, cv2
 from PIL import Image
 from .util import fbm, sm, hsh, surf_rgba, ease, cl
 
 PAPER = (0.88, 0.80, 0.63)
-DEFAULT_DATA_DIR = Path(__file__).with_name('data')
 
 
 class World:
-    def __init__(self, cfg, data_dir=DEFAULT_DATA_DIR):
+    def __init__(self, cfg, data_dir):
         self.cfg = cfg; self.dd = data_dir
         self.LON0, self.LON1, self.LAT1, self.LAT0 = cfg['bbox']          # LAT0 = 北缘（纹理顶部）
         self.K = float(cfg.get('px_per_deg', 116)); self.KX = math.cos(math.radians((self.LAT0 + self.LAT1) / 2))
@@ -54,9 +51,7 @@ class World:
     def _in(self, pts, pad=2):
         return any(self.LON0 - pad < p[0] < self.LON1 + pad and self.LAT1 - pad < p[1] < self.LAT0 + pad for p in pts[::4] + pts[-1:])
 
-    def _load(self, name):
-        with (Path(self.dd) / name).open(encoding='utf-8') as src:
-            return json.load(src)['features']
+    def _load(self, name): return json.load(open(os.path.join(self.dd, name), encoding='utf-8'))['features']
 
     # ---------------------------------------------------------------- static rasters
     def _land(self):
@@ -73,12 +68,10 @@ class World:
         return np.ndarray((self.TH, s.get_stride()), np.uint8, s.get_data())[:, :self.TW].astype(np.float32) / 255
 
     def _relief(self):
-        if not self.cfg.get('relief_raster', True):
-            return np.zeros((self.TH, self.TW), np.float32), np.zeros((self.TH, self.TW), np.float32)
-        with Image.open(os.path.join(self.dd, 'shadedrelief.jpg')) as im:
-            W, Hh = im.size
-            box = (int((self.LON0 + 180) / 360 * W), int((90 - self.LAT0) / 180 * Hh), int((self.LON1 + 180) / 360 * W), int((90 - self.LAT1) / 180 * Hh))
-            a = np.asarray(im.crop(box).convert('RGB')).astype(np.float32) / 255
+        Image.MAX_IMAGE_PIXELS = None
+        im = Image.open(os.path.join(self.dd, 'shadedrelief.jpg')); W, Hh = im.size
+        box = (int((self.LON0 + 180) / 360 * W), int((90 - self.LAT0) / 180 * Hh), int((self.LON1 + 180) / 360 * W), int((90 - self.LAT1) / 180 * Hh))
+        a = np.asarray(im.crop(box).convert('RGB')).astype(np.float32) / 255
         a = cv2.resize(a, (self.TW, self.TH), interpolation=cv2.INTER_CUBIC)
         k = max(1.0, self.K / 116)                                                     # 纹理比底图数据细时，模糊半径跟着放大，免得晕渲成块
         lum = cv2.GaussianBlur(a.mean(-1), (0, 0), 2.2 * k * k); hill = lum - cv2.GaussianBlur(lum, (0, 0), 18 * k)

@@ -33,8 +33,7 @@ class Film:
             if scale != 1.0: img = img.resize((w, h), Image.LANCZOS)
             p.stdin.write(img.tobytes())
             if (f - a) % 60 == 0: print(f'[part {i}] {f - a}/{b - a}', flush=True)
-        p.stdin.close()
-        if p.wait(): raise SystemExit(f'编码失败：{out}')
+        p.stdin.close(); p.wait()
 
     def cli(self, argv=None):
         argv = argv or sys.argv; cmd = argv[1] if len(argv) > 1 else 'info'; script = os.path.abspath(argv[0])
@@ -49,8 +48,7 @@ class Film:
         elif cmd == 'render':
             out = argv[2]; n = int(argv[3]) if len(argv) > 3 else 2; scale = argv[4] if len(argv) > 4 else '1'; d = out + '.parts'; os.makedirs(d, exist_ok=True)
             ps = [subprocess.Popen([sys.executable, script, 'part', str(i), str(n), os.path.join(d, f'p{i}.mp4'), scale]) for i in range(n)]
-            codes = [p.wait() for p in ps]
-            if any(codes): raise SystemExit('有分段渲染失败（内存不够时进程会被杀，减少 procs 再试）')
+            if any(p.wait() for p in ps): raise SystemExit('有分段渲染失败（内存不够时进程会被杀，减少 procs 再试）')
             N = int(round(self.total * FPS)); got = 0
             for i in range(n):        # 核对帧数：被杀的分段不会报错，只会少帧
                 r = subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames', '-of', 'csv=p=0', os.path.join(d, f'p{i}.mp4')], capture_output=True, text=True)

@@ -34,8 +34,8 @@ def surf_rgba(s):
 def to_img(frame): return Image.fromarray((np.clip(frame, 0, 1) * 255).astype(np.uint8))
 
 
-# ---- 字体：粗宋体。MAPWAR_FONT 可覆盖仓库通用的 MADIAN_FONT。
-_FONT_CANDIDATES = [os.environ.get('MAPWAR_FONT', ''), os.environ.get('MADIAN_FONT', ''), '/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc', 'C:/Windows/Fonts/NotoSerifSC-Bold.otf', 'C:/Windows/Fonts/simsunb.ttf',
+# ---- 字体：粗宋体。可用环境变量 MAPWAR_FONT 指定；否则按顺序找系统里有的。
+_FONT_CANDIDATES = [os.environ.get('MAPWAR_FONT', ''), '/usr/share/fonts/opentype/noto/NotoSerifCJK-Bold.ttc', 'C:/Windows/Fonts/NotoSerifSC-Bold.otf', 'C:/Windows/Fonts/simsunb.ttf',
                     'C:/Windows/Fonts/STZHONGS.TTF', 'C:/Windows/Fonts/msyhbd.ttc', '/System/Library/Fonts/Supplemental/Songti.ttc', '/System/Library/Fonts/PingFang.ttc']
 FONT = next((p for p in _FONT_CANDIDATES if p and os.path.exists(p)), None)
 _f = {}
@@ -44,7 +44,7 @@ _f = {}
 def font(px):
     px = int(px)
     if px not in _f:
-        if FONT is None: raise RuntimeError('找不到中文字体：请设置 MADIAN_FONT 或 MAPWAR_FONT 指向一个粗宋体/黑体字体文件')
+        if FONT is None: raise RuntimeError('找不到中文字体：请设置环境变量 MAPWAR_FONT 指向一个粗宋体/黑体字体文件')
         try: _f[px] = ImageFont.truetype(FONT, px, index=2 if FONT.endswith('NotoSerifCJK-Bold.ttc') else 0)
         except Exception: _f[px] = ImageFont.truetype(FONT, px)
     return _f[px]

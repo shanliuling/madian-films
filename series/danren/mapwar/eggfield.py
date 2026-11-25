@@ -95,14 +95,16 @@ UNITS = [
 # ================================================================ 模拟
 def simulate(units=None, track=None):
     """units：Unit 列表（不给就用下面的示例布阵：一支楔形骑兵撞进多块步兵方阵）；track：镜头跟随的那一队的下标。"""
-    units = UNITS if units is None else list(units)
-    N = sum(len(u.slots) for u in units); uid = np.concatenate([np.full(len(u.slots), i) for i, u in enumerate(units)])
-    side = np.array([units[i].side == 'C' for i in uid]); kind = np.array([KINDS[units[i].kind] for i in uid]); cav = kind == 3
-    slot_i = np.concatenate([np.arange(len(u.slots)) for u in units])
+    global UNITS
+    if units is not None: UNITS = list(units)
+    N = sum(len(u.slots) for u in UNITS); uid = np.concatenate([np.full(len(u.slots), i) for i, u in enumerate(UNITS)])
+    side = np.array([UNITS[i].side == 'C' for i in uid]); kind = np.array([KINDS[UNITS[i].kind] for i in uid]); cav = kind == 3
+    slot_i = np.concatenate([np.arange(len(u.slots)) for u in UNITS])
     pos = np.zeros((N, 2), np.float32)
-    for i, u in enumerate(units):
+    for i, u in enumerate(UNITS):
         c, a, off = u.frame(0); pos[uid == i] = c + off
-    vel = np.zeros_like(pos); face = np.array([units[i].frame(0)[1] for i in uid], np.float32)
+    vel = np.zeros_like(pos); face = np.array([math.radians(UNITS[i].frame(0)[1] * 180 / math.pi) for i in uid], np.float32)
+    face = np.array([UNITS[i].frame(0)[1] for i in uid], np.float32)
     state = np.zeros(N, np.int8)              # 0 列阵 1 接战 2 溃逃 3 死
     die_t = np.full(N, 1e9, np.float32); fall_dir = rng.uniform(0, 2 * math.pi, N).astype(np.float32)
     phase = rng.uniform(0, 2 * math.pi, N).astype(np.float32); jit = rng.normal(0, 1, (N, 2)).astype(np.float32)
@@ -113,7 +115,7 @@ def simulate(units=None, track=None):
     for f in range(int(DUR * FPS) + 2):
         t = f * dt; alive = state < 3
         tgt = pos.copy(); spd_cap = vmax.copy(); want_face = face.copy()
-        for i, u in enumerate(units):
+        for i, u in enumerate(UNITS):
             m = (uid == i) & alive; c, a, off = u.frame(t); tg = c + off[slot_i[m]]
             tgt[m] = tg; want_face[m] = a
             if u.rout is not None and t >= u.rout:
@@ -131,7 +133,7 @@ def simulate(units=None, track=None):
             if en.sum() == 0 or me.sum() == 0: continue
             d, j = cKDTree(pos[en]).query(pos[me], k=1); idx = np.flatnonzero(me); rd[idx] = d; rv[idx] = pos[en][j] - pos[idx]
         dirn = near_v / np.maximum(near_d[:, None], 1e-3)
-        chg = np.array([units[i].charge is not None and t >= units[i].charge for i in uid])
+        chg = np.array([UNITS[i].charge is not None and t >= UNITS[i].charge for i in uid])
         hunt = alive & (state < 2) & chg & (near_d < (22 * np.where(cav, 1.0, 0.5)))
         tgt[hunt] = pos[hunt] + dirn[hunt] * np.where(cav[hunt, None], 20.0, np.minimum(near_d[hunt, None], 8.0))
         chase = alive & (state < 2) & chg & (near_d > 14) & (rd < np.where(cav, 40, 16))
@@ -143,12 +145,12 @@ def simulate(units=None, track=None):
         # 溃逃：背向敌人跑
         r = alive & (state == 2)
         if r.any():
-            fl = np.array([units[i].flee for i in uid[r]]); fl = fl / np.linalg.norm(fl, axis=1, keepdims=True)
+            fl = np.array([UNITS[i].flee for i in uid[r]]); fl = fl / np.linalg.norm(fl, axis=1, keepdims=True)
             away = fl + jit[r] * 0.35 - dirn[r] * (near_d[r, None] < 6) * 0.8
             tgt[r] = pos[r] + away * 20; spd_cap[r] = np.where(cav[r], 14, 7.6) * (0.85 + 0.3 * np.abs(jit[r, 0]) % 0.3)
         # 追击：溃逃开始后，骑兵追最近的溃兵
         # 伤亡
-        vul = np.array([units[i].vuln for i in uid], np.float32)
+        vul = np.array([UNITS[i].vuln for i in uid], np.float32)
         kill = e & (rng.random(N) < vul * dt * 4.0)
         # 骑兵冲击：高速骑兵撞到步兵
         sp_now = np.linalg.norm(vel, axis=1)
@@ -198,13 +200,13 @@ def simulate(units=None, track=None):
             for k in src[rng.random(len(src)) < 0.55]: dust.append((pos[k, 0], pos[k, 1], t, rng.uniform(1.5, 3.0)))
         frames.append(dict(pos=pos.copy(), z=z.copy(), vel=vel.copy(), face=face.copy(), state=state.copy(), die_t=die_t.copy(), fall=fall_dir.copy(), phase=phase.copy(), spd=sp_now.copy(), eng=eng.copy()))
     flag = np.zeros(N, bool)
-    for i, u in enumerate(units):
+    for i, u in enumerate(UNITS):
         idx = np.flatnonzero(uid == i)
         if u.kind == 'cav': flag[idx[9::30]] = True
         else:
             nf = max(1, int(round(np.ptp(u.slots[:, 1]) / 1.0)) + 1); rk1 = idx[nf:2 * nf] if len(idx) > 2 * nf else idx
             flag[rk1[[len(rk1) // 4, 3 * len(rk1) // 4]]] = True
-    return dict(frames=frames, uid=uid, side=side, kind=kind, dust=dust, imp=imp, flag=flag, track=len(units) - 1 if track is None else track)
+    return dict(frames=frames, uid=uid, side=side, kind=kind, dust=dust, imp=imp, flag=flag, track=len(UNITS) - 1 if track is None else track)
 
 
 # ================================================================ 箭雨
@@ -216,12 +218,17 @@ CAM = [  # t, 目标x, 目标y, 距离, 俯仰(90=正俯视), 朝向, 跟随骑�
 TRACK = len(UNITS) - 1
 
 
+CENT = {}
+
+
 class Cam:
     def __init__(self, t, S=None):
         tx, ty, D, p, y, w = kf(CAM, t)[:6]; p, y = math.radians(p), math.radians(y)
         if S is not None and w > 0.01:
-            cx, cy = cav_state(S, t)[0] + (6, 4)
-            tx, ty = tx * (1 - w) + cx * w, ty * (1 - w) + cy * w
+            f = min(len(S['frames']) - 1, int(round(t * FPS)))
+            if f not in CENT:
+                F = S['frames'][f]; m = (S['uid'] == TRACK) & (F['state'] < 3); CENT[f] = F['pos'][m].mean(0) + np.float32([6, 4])
+            tx, ty = tx * (1 - w) + CENT[f][0] * w, ty * (1 - w) + CENT[f][1] * w
         g = np.array([math.cos(y), math.sin(y), 0.0]); z = np.array([0, 0, 1.0]); b = -math.cos(p) * g + math.sin(p) * z
         self.C = np.array([tx, ty, 0.0]) + D * b; self.v = -b; self.r = np.cross(g, z); self.r /= np.linalg.norm(self.r); self.u = np.cross(self.r, self.v)
         self.pitch = p; self.tilt = cl((math.radians(89) - p) / math.radians(50))
@@ -312,7 +319,6 @@ SLOW, RAMP, RATE = 1.6, 0.7, 0.3          # 撞击后：慢放时长（秒）、
 
 
 def sim_t(ft, S):
-    if S['imp'] is None: return ft
     T = S['imp'][0]
     if ft < T: return ft
     u = ft - T
@@ -321,9 +327,7 @@ def sim_t(ft, S):
     return T + RATE * SLOW + (RATE + 1) / 2 * RAMP + (u - SLOW - RAMP)
 
 
-def film_len(S):
-    if S['imp'] is None: return (len(S['frames']) - 1) / FPS
-    T = S['imp'][0]; return T + SLOW + RAMP + (21 - (T + RATE * SLOW + (RATE + 1) / 2 * RAMP)) - 0.6
+def film_len(S): T = S['imp'][0]; return T + SLOW + RAMP + (21 - (T + RATE * SLOW + (RATE + 1) / 2 * RAMP)) - 0.6
 
 
 def hand(ft, a=1.0, seed=0):
@@ -331,14 +335,11 @@ def hand(ft, a=1.0, seed=0):
 
 
 def cav_state(S, ts):
-    fi = min(len(S['frames']) - 1, int(round(ts * FPS))); F = S['frames'][fi]; group = S['uid'] == S.get('track', TRACK)
-    m = group & (F['state'] < 3)
-    if not np.any(m): m = group if np.any(group) else np.ones_like(group)
+    fi = min(len(S['frames']) - 1, int(round(ts * FPS))); F = S['frames'][fi]; m = (S['uid'] == S.get('track', TRACK)) & (F['state'] < 3)
     c = F['pos'][m].mean(0); v = F['vel'][m].mean(0); return c, math.atan2(v[1], v[0])
 
 
 def impact_fx(c, cam, S, ts, ring_only=False):
-    if S['imp'] is None: return
     T, ix, iy, ih = S['imp']; a = ts - T
     if a < 0 or a > 2.5: return
     r = np.random.default_rng(9)
@@ -387,7 +388,7 @@ CAM = [  # 仿真时间：t, x, y, 距离, 俯仰, 朝向, 跟随骑兵
 
 
 def shot_cam(ft, S, keys=None):
-    ts = sim_t(ft, S); T = S['imp'][0] if S['imp'] else math.inf
+    ts = sim_t(ft, S); T = S['imp'][0]
     tx, ty, D, p, y, w = kf(keys or CAM, ts)[:6]
     if w > 0.01:
         c, h = cav_state(S, ts); tx, ty = tx * (1 - w) + (c[0] + 4) * w, ty * (1 - w) + c[1] * w
@@ -533,7 +534,7 @@ def horse(c, cam, p, f, s, ph, spd, i, lod, k=1.0, colr=None):
 
 def render(ft, S, keys=None):
     """模拟结果 S 在影片时刻 ft 的一帧（撞击后自动慢放）。返回 (PIL 图 1920×1080, 镜头, 仿真时刻)。"""
-    cam, ts = shot_cam(ft, S, keys); T = S['imp'][0] if S['imp'] else math.inf; bg = ground(cam)
+    cam, ts = shot_cam(ft, S, keys); T = S['imp'][0]; bg = ground(cam)
     F = S['frames'][min(len(S['frames']) - 1, int(round(ts * 30)))]; pos = F['pos']; N = len(pos)
     P0 = np.c_[pos, F['z']]; scr, sc = cam.proj(P0); scr = scr * K; sc = sc * K
     d = (P0 - cam.C) @ cam.v; order = np.argsort(-d)
@@ -595,7 +596,7 @@ def scene(cam, F, chu_m, cav_m, ts, lower, hero=-1, night=False, torches=None, p
     P0 = np.c_[pos, F['z']]; scr, sc = cam.proj(P0); scr = scr * K; sc = sc * K
     d = (P0 - cam.C) @ cam.v; order = np.argsort(-d)
     fwd = np.c_[np.cos(F['face']), np.sin(F['face']), np.zeros(N)]; fr = fwd @ cam.r; fa = fwd @ cam.v
-    side = np.c_[-fwd[:, 1], fwd[:, 0], np.zeros(N)]; hk = np.ones(N)
+    side = np.c_[-fwd[:, 1], fwd[:, 0], np.zeros(N)]; hk = np.ones(N); 
     if hero >= 0: hk[hero] = 1.5
     base = P0 + (fwd * 0.3 + side * 0.32) * hk[:, None] + (np.where(cav_m, 2.0, 0.95) * hk)[:, None] * Z1
     tipL = P0 + fwd * (np.where(cav_m, 2.7, 2.3) * hk)[:, None] + side * 0.32 * hk[:, None] + (np.where(cav_m, 2.5, 1.35) * hk)[:, None] * Z1

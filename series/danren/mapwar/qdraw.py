@@ -104,3 +104,4 @@ def head_path(c, x, hy, R, shape, k=1.0):
     if shape == 'egg': c.save(); c.translate(x, hy); c.scale(0.86, 1.06); c.new_sub_path(); c.arc(0, 0, R, 0, 2 * PI); c.restore(); return
     w, h_, r = {'square': (1.0, 0.94, 0.16), 'tofu': (1.0, 0.94, 0.42), 'wide': (1.12, 0.86, 0.3)}[shape]
     rrect(c, x - w * R, hy - h_ * R, 2 * w * R, 2 * h_ * R, r * R)
+
