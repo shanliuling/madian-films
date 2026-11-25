@@ -2,3 +2,4 @@ __pycache__/
 out/
 *.pyc
 .DS_Store
+/engine/mapwar/data/
